@@ -68,7 +68,7 @@ class MediaLibrary:
         Used by MediaLibrary.
         """
 
-        def __init__(self, name, last = False):
+        def __init__(self, name, last=False):
             """
             Constructor, initializes MediaFolder with path
             :param path: str path to the folder

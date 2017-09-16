@@ -1,9 +1,12 @@
 import unittest
-from MediaLibrary import MediaLibrary
 from timeit import default_timer as timer
+
+from classes.MediaLibrary import MediaLibrary
 
 ROOT = 'D:\OneDrive\Hudba\Arjen Anthony Lucassen'
 FOLDERS_COUNT = 23
+
+media_finder = MediaLibrary(ROOT)
 
 class FoldersLengthTestCase(unittest.TestCase):
     def test(self):
@@ -14,7 +17,6 @@ class FoldersLengthTestCase(unittest.TestCase):
 """
 Print folders (not real test)
 """
-media_finder = MediaLibrary(ROOT)
 start = timer()
 media_finder.init()
 end = timer()
