@@ -1,4 +1,6 @@
-This program was written as a semestral project for the class Operaèní Systémy II (UAI/755) at University of South Bohemia, Czech Republic.
+TODO: DELETE THIS FOLDER
+
+This program was written as a semestral project for the class OperaÃ¨nÃ­ SystÃ©my II (UAI/755) at University of South Bohemia, Czech Republic.
 
 This is a simple CD player for Raspberry Pi. You need to have external USB CD drive and external USB sound card.
 
@@ -6,4 +8,4 @@ To run the script you need to install mplayer (apt-get install mplayer), flask (
 
 The player can be controlled by buttons (see below) or from a website. The webserver runs on port 5000.
 
-![my setup](/setup.jpg?raw=true)
+![my setup](/_old/setup.jpg?raw=true)
