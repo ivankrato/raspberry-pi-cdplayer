@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CD Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/font-awesome.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/style.css') }}">
+    <script src="{{ url_for('static',filename='js/jquery-3.1.1.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/socket.io.min.js') }}"></script>
+    <script src="{{ url_for('static',filename='js/init.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="status">Waiting for CD</h1>
+        <div class="clearfix">
+            <p class="song">&nbsp;</p>
+            <p class="time">&nbsp;</p>
+        </div>
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar"></div>
+            <div class="seeker"></div>
+        </div>
+        <div class="buttons">
+            <button disabled data-emit="previousSong"><i class="fa fa-fast-backward"></i></button>
+            <button disabled data-emit="pauseSong"><i class="fa fa-pause"></i></button>
+            <button disabled data-emit="nextSong"><i class="fa fa-fast-forward"></i></button>
+            <button disabled data-emit="eject"><i class="fa fa-eject"></i></button>
+        </div>
+    </div>
+</body>
+</html>

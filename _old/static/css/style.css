@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css?family=Space+Mono');
+body {
+  background: #555;
+  color: white;
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+}
+* {
+  box-sizing: border-box;
+}
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+.clearfix:before,
+.clearfix:after {
+  display: table;
+  content: "";
+}
+.clearfix:after {
+  clear: both;
+}
+.song {
+  margin: 0;
+  float: left;
+}
+.time {
+  margin: 0;
+  float: right;
+}
+.progress-bar-wrapper {
+  background: #ccc;
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+  height: 10px;
+  position: relative;
+  margin-bottom: 20px;
+}
+.progress-bar-wrapper .progress-bar {
+  height: 100%;
+  width: 0;
+  background: darkorange;
+}
+.progress-bar-wrapper .seeker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  line-height: 10px;
+}
+.progress-bar-wrapper .seeker .seek {
+  width: 1%;
+  height: 100%;
+  cursor: pointer;
+  display: inline-block;
+}
+.buttons {
+  display: inline-block;
+  word-spacing: 9px;
+}
+.buttons button {
+  border: 5px solid darkorange;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 40px;
+  color: darkorange;
+  cursor: pointer;
+  padding: 10px;
+  line-height: 40px;
+  height: 70px;
+  width: 70px;
+  display: inline-block;
+  outline: none !important;
+  margin-bottom: 15px;
+}
+.buttons button:hover {
+  color: #e67e00;
+  border-color: #e67e00;
+}
+.buttons button[disabled],
+.buttons button[disabled]:hover {
+  cursor: default;
+  color: #ccc;
+  border-color: #ccc;
+}

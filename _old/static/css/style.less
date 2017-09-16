@@ -1,0 +1,108 @@
+@color: darkorange;
+@bg: #555;
+@import url('https://fonts.googleapis.com/css?family=Space+Mono');
+
+body {
+    background: @bg;
+    color: white;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
+}
+
+.clearfix {
+    &:before,
+    &:after {
+        display: table;
+        content: "";
+    }
+
+    &:after {
+        clear: both;
+    }
+}
+
+.song {
+    margin: 0;
+    float: left;
+}
+
+.time {
+    margin: 0;
+    float: right;
+}
+
+.progress-bar-wrapper {
+    background: #ccc;
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    height: 10px;
+    position: relative;
+    margin-bottom: 20px;
+
+    .progress-bar {
+        height: 100%;
+        width: 0;
+        background: @color;
+    }
+
+    .seeker {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        line-height: 10px;
+
+        .seek {
+            width: 1%;
+            height: 100%;
+            cursor: pointer;
+            display: inline-block;
+        }
+    }
+}
+
+.buttons {
+    display: inline-block;
+    word-spacing: 9px;
+
+    button {
+        border: 5px solid @color;
+        border-radius: 50%;
+        background: transparent;
+        font-size: 40px;
+        color: @color;
+        cursor: pointer;
+        padding: 10px;
+        line-height: 40px;
+        height: 70px;
+        width: 70px;
+        display: inline-block;
+        outline: none !important;
+        margin-bottom: 15px;
+
+        &:hover {
+            color: darken(@color, 5%);
+            border-color: darken(@color, 5%);
+        }
+
+        &[disabled],
+        &[disabled]:hover {
+            cursor: default;
+            color: #ccc;
+            border-color: #ccc;
+        }
+    }
+}
