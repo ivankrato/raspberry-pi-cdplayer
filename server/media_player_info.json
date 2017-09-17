@@ -15,18 +15,6 @@
       "artist": "Artist",
       "album": "Album",
       "title": "Title"
-    },
-    {
-      "total_time": 12345,
-      "artist": "Artist",
-      "album": "Album",
-      "title": "Title"
-    },
-    {
-      "total_time": 12345,
-      "artist": "Artist",
-      "album": "Album",
-      "title": "Title"
     }
   ]
 }

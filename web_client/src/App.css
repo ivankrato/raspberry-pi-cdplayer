@@ -1,11 +1,12 @@
 body {
   font-size: 24px;
-  font-family: 'Space Mono', monospace; }
-
-.media-player {
+  font-family: 'Space Mono', monospace;
   margin: 0 auto;
   max-width: 600px;
   padding-top: 50px; }
+
+.media-player {
+  padding: 15px; }
   .media-player .progress-bar-container {
     position: relative;
     height: 20px;

@@ -2,28 +2,28 @@
   "status": "playing",
   "total_tracks": 3,
   "cur_track_info": {
-    "cur_time": 1234,
+    "cur_time": 275135,
     "track_number": 1,
-    "total_time": 12345,
+    "total_time": 350000,
     "artist": "Artist",
     "album": "Album",
     "title": "Title"
   },
   "track_list": [
     {
-      "total_time": 12345,
+      "total_time": 1234567,
       "artist": "Artist",
       "album": "Album",
       "title": "Title"
     },
     {
-      "total_time": 12345,
+      "total_time": 1234567,
       "artist": "Artist",
       "album": "Album",
       "title": "Title"
     },
     {
-      "total_time": 12345,
+      "total_time": 1234567,
       "artist": "Artist",
       "album": "Album",
       "title": "Title"

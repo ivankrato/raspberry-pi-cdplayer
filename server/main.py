@@ -13,6 +13,11 @@ log.setLevel(logging.ERROR)
 socket = SocketIO(app, async_mode='threading')
 
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
 @socket.on('connect')
 def ws_connect():
     emit('status', 'connected')
