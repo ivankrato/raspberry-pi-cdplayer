@@ -22,7 +22,7 @@ def index():
 def ws_connect():
     emit('status', 'connected')
     json_obj = json.loads(open('media_player_info_test.json').read())
-    Timer(5, lambda json_obj=json_obj: socket.emit('media_player_info', json_obj)).start()
+    Timer(1, lambda json_obj=json_obj: socket.emit('media_player_info', json_obj)).start()
     print('connected')
 
 
