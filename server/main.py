@@ -1,6 +1,7 @@
 from threading import Thread, Timer
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
+import json
 import logging
 
 # Web server configuration
@@ -12,15 +13,11 @@ log.setLevel(logging.ERROR)
 socket = SocketIO(app, async_mode='threading')
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
 @socket.on('connect')
 def ws_connect():
     emit('status', 'connected')
-    Timer(5, lambda: socket.emit('status', '5 seconds have passed.')).start()
+    json_obj = json.loads(open('media_player_info_test.json').read())
+    Timer(5, lambda json_obj=json_obj: socket.emit('media_player_info', json_obj)).start()
     print('connected')
 
 
@@ -50,7 +47,8 @@ def ws_eject():
 
 
 @socket.on('seek')
-def ws_seek():
+def ws_seek(data):
+    print(data)
     pass
 
 
@@ -62,7 +60,6 @@ def start_web_server():
     """
     if __name__ == '__main__':
         socket.run(app, "0.0.0.0", port=5123)
-
 
 
 # Start web server thread

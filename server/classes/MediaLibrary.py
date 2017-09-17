@@ -1,10 +1,10 @@
 import os
-from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import EasyMP3
 
 
 class MediaLibrary:
     """
-    Class MediaLibrary represents a finder that searchs for media (MP3/WMA) files
+    Class MediaLibrary represents a finder that searchs for media (MP3) files
     and puts them into a tree of folders/files and artists/albums/songs
     """
 
@@ -25,7 +25,7 @@ class MediaLibrary:
         for subdir, dirs, files in os.walk(self._root_folder):
             media_folder = MediaLibrary.MediaFolder(subdir)
             for file in files:
-                if file.endswith('.mp3') or file.endswith('.wma'):
+                if file.endswith('.mp3'):
                     media_file = MediaLibrary.MediaFile(file, subdir)
                     media_file.init_tags()
                     # adds folders and files
@@ -64,7 +64,7 @@ class MediaLibrary:
 
     class MediaBranch:
         """
-        Class MediaFolder represents a folder which contains some media (MP3/WMA).
+        Class MediaFolder represents a folder which contains some media (MP3).
         Used by MediaLibrary.
         """
 
@@ -171,7 +171,7 @@ class MediaLibrary:
 
     class MediaFile:
         """
-        Class MediaFile represent a file that contains a piece of media (MP3/WMA).
+        Class MediaFile represent a file that contains a piece of media (MP3).
         User by MediaLibrary.
         """
         DEFAULT_ARTIST = "Unknown Artist"
@@ -188,6 +188,7 @@ class MediaLibrary:
             self._artist = MediaLibrary.MediaFile.DEFAULT_ARTIST
             self._album = MediaLibrary.MediaFile.DEFAULT_ALBUM
             self._title = self._file_name_no_ext
+            self._totalTime = 0
 
         def init_tags(self):
             """
@@ -195,13 +196,14 @@ class MediaLibrary:
             :return: None
             """
             try:
-                media_info = EasyID3(self._full_path)
-                self._artist = media_info.get("albumartist", media_info.get("artist", self._artist))
+                media_info = EasyMP3(self._full_path)
+                self._artist = media_info.tags.get("albumartist", media_info.tags.get("artist", self._artist))
                 if type(self._artist) is list: self._artist = ','.join(self._artist)
-                self._album = media_info.get("album", self._album)
+                self._album = media_info.tags.get("album", self._album)
                 if type(self._album) is list: self._album = ','.join(self._album)
-                self._title = media_info.get("title", self._title)
+                self._title = media_info.tags.get("title", self._title)
                 if type(self._title) is list: self._title = ','.join(self._title)
+                self._totalTime = round(media_info.info.length*1000) # we need milliseconds, not seconds
             except:
                 # Default tags if file has no tags
                 pass
@@ -240,3 +242,11 @@ class MediaLibrary:
             :return: str title of the media
             """
             return self._title
+
+        @property
+        def total_time(self):
+            """
+            Property, total time of the media in milliseconds
+            :return: number total time of the media in milliseconds
+            """
+            return self._totalTime

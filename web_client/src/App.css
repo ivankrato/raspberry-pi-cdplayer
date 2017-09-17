@@ -1,2 +1,23 @@
 body {
-  font-size: 21px; }
+  font-size: 24px;
+  font-family: 'Space Mono', monospace; }
+
+.media-player {
+  margin: 0 auto;
+  max-width: 600px;
+  padding-top: 50px; }
+  .media-player .progress-bar-container {
+    position: relative;
+    height: 20px;
+    background-color: lightgray; }
+  .media-player .progress-bar,
+  .media-player .seeker {
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    position: absolute; }
+  .media-player .progress-bar {
+    background-color: darkorange; }
+  .media-player .seeker {
+    cursor: pointer; }

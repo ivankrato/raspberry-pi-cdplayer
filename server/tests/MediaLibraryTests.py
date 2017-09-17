@@ -25,7 +25,7 @@ for artist in media_finder.artists:
     for album in artist.albums:
         print('  ' + str(album) + ':')
         for song in album.songs:
-            print('    ' + str(song))
+            print('    ' + str(song) + ' - ' + str(song.total_time))
 
 print('init executing time: ' + str(end - start))
 
