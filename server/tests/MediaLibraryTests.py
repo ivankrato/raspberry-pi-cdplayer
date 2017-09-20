@@ -6,19 +6,19 @@ from classes.MediaLibrary import MediaLibrary
 ROOT = 'D:\OneDrive\Hudba\Arjen Anthony Lucassen'
 FOLDERS_COUNT = 23
 
-media_finder = MediaLibrary(ROOT)
+media_finder = MediaLibrary()
 
 class FoldersLengthTestCase(unittest.TestCase):
     def test(self):
-        media_finder = MediaLibrary(ROOT)
-        media_finder.init()
+        media_finder = MediaLibrary()
+        media_finder.init(ROOT)
         self.assertEqual(len(media_finder.media_folders), FOLDERS_COUNT)
 
 """
 Print folders (not real test)
 """
 start = timer()
-media_finder.init()
+media_finder.init(ROOT)
 end = timer()
 for artist in media_finder.artists:
     print(str(artist) + ':')

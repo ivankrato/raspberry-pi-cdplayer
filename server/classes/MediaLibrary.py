@@ -8,20 +8,26 @@ class MediaLibrary:
     and puts them into a tree of folders/files and artists/albums/songs
     """
 
-    def __init__(self, root_folder):
+    def __init__(self):
         """
         Constructor, initializes the MediaLibrary class with a root folder
         :param root_folder: folder to be searched in
         """
-        self._root_folder = root_folder
+        self._root_folder = ''
+        self._media_file_count = 0
         self._media_folders = []
         self._artists = []
 
-    def init(self):
+    def init(self, root_folder):
         """
         Searches for the media in root folder and initializes the media tree
         :return: None
         """
+        self._root_folder = root_folder
+        self._media_file_count = 0
+        self._media_folders = []
+        self._artists = []
+        print(root_folder)
         for subdir, dirs, files in os.walk(self._root_folder):
             media_folder = MediaLibrary.MediaFolder(subdir)
             for file in files:
@@ -45,6 +51,7 @@ class MediaLibrary:
                         album = MediaLibrary.Album(media_file.album)
                         artist.add_album(album)
                     album.add_song(media_file)
+                    self._media_file_count += 1
 
     @property
     def media_folders(self):
@@ -61,6 +68,14 @@ class MediaLibrary:
         :return: array with MediaBranch instances with artists
         """
         return self._artists
+
+    @property
+    def media_file_count(self):
+        """
+        Number of media in this library
+        :return: number of media in this library
+        """
+        return self._media_file_count
 
     class MediaBranch:
         """
