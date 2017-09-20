@@ -3,6 +3,9 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import json
 import logging
+from classes.MediaPlayer import MediaPlayer
+from time import sleep
+import pyudev
 
 # Web server configuration
 app = Flask(__name__, template_folder=".", static_folder=".")
@@ -15,7 +18,7 @@ socket = SocketIO(app, async_mode='threading')
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return 'test'
 
 
 @socket.on('connect')
@@ -68,9 +71,18 @@ def start_web_server():
 
 
 # Start web server thread
-"""
 web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
 web_server_thread.start()
-"""
-start_web_server()
+
+# Check for CDs
+media_player = MediaPlayer()
+media_player.try_play_cd() # try to play CD after running the program
+
+# check udev for USB changes (including CD insertion)
+udev_context = pyudev.Context()
+udev_monitor = pyudev.Monitor.from_netlink(udev_context)
+udev_monitor.filter_by(subsystem='block')
+for device in iter(udev_monitor.poll, None):
+    if device.action == 'change':
+        media_player.try_play_cd()
