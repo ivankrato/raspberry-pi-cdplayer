@@ -1,24 +1,31 @@
 body {
   font-size: 24px;
-  font-family: 'Space Mono', monospace;
-  margin: 0 auto;
-  max-width: 600px;
-  padding-top: 50px; }
+  font-family: 'Space Mono', monospace; }
 
-.media-player {
-  padding: 15px; }
-  .media-player .progress-bar-container {
-    position: relative;
-    height: 20px;
-    background-color: lightgray; }
-  .media-player .progress-bar,
-  .media-player .seeker {
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    position: absolute; }
-  .media-player .progress-bar {
-    background-color: darkorange; }
-  .media-player .seeker {
-    cursor: pointer; }
+.clearfix:after {
+  content: "";
+  display: table;
+  clear: both; }
+
+.media-player-container {
+  padding: 50px 0 0;
+  max-width: 1200px;
+  margin: 0 auto; }
+  .media-player-container .media-player {
+    margin: 0 auto;
+    max-width: 600px; }
+    .media-player-container .media-player .progress-bar-container {
+      position: relative;
+      height: 20px;
+      background-color: lightgray; }
+    .media-player-container .media-player .progress-bar,
+    .media-player-container .media-player .seeker {
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      position: absolute; }
+    .media-player-container .media-player .progress-bar {
+      background-color: darkorange; }
+    .media-player-container .media-player .seeker {
+      cursor: pointer; }

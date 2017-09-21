@@ -6,7 +6,7 @@ from classes.MediaLibrary import MediaLibrary
 ROOT = 'D:\OneDrive\Hudba\Arjen Anthony Lucassen'
 FOLDERS_COUNT = 23
 
-media_finder = MediaLibrary()
+media_library = MediaLibrary()
 
 class FoldersLengthTestCase(unittest.TestCase):
     def test(self):
@@ -18,14 +18,9 @@ class FoldersLengthTestCase(unittest.TestCase):
 Print folders (not real test)
 """
 start = timer()
-media_finder.init(ROOT)
+media_library.init(ROOT)
 end = timer()
-for artist in media_finder.artists:
-    print(str(artist) + ':')
-    for album in artist.albums:
-        print('  ' + str(album) + ':')
-        for song in album.songs:
-            print('    ' + str(song) + ' - ' + str(song.total_time))
+print(media_library.as_dict())
 
 print('init executing time: ' + str(end - start))
 

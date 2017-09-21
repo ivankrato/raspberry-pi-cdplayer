@@ -3,9 +3,10 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import json
 import logging
-from classes.MediaPlayer import MediaPlayer
+#from classes.MediaPlayer import MediaPlayer
+from classes.MediaLibrary import MediaLibrary
 from time import sleep
-import pyudev
+#import pyudev
 
 # Web server configuration
 app = Flask(__name__, template_folder=".", static_folder=".")
@@ -24,8 +25,16 @@ def index():
 @socket.on('connect')
 def ws_connect():
     emit('status', 'connected')
+    media_library = MediaLibrary()
+    media_library.init('D:\OneDrive\Hudba\Arjen Anthony Lucassen')
+
     json_obj = json.loads(open('media_player_info_test.json').read())
     Timer(1, lambda json_obj=json_obj: socket.emit('media_player_info', json_obj)).start()
+
+    json_obj = {
+        'library': media_library.as_dict()
+    }
+    Timer(2, lambda json_obj=json_obj: socket.emit('media_player_info', json_obj)).start()
     print('connected')
 
 
@@ -69,7 +78,8 @@ def start_web_server():
     if __name__ == '__main__':
         socket.run(app, "0.0.0.0", port=5123)
 
-
+start_web_server()
+"""
 # Start web server thread
 web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
@@ -87,3 +97,4 @@ for device in iter(udev_monitor.poll, None):
     if device.action == 'change':
         sleep(1)
         media_player.try_play_cd()
+"""

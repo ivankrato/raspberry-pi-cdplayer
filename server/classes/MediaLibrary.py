@@ -53,6 +53,13 @@ class MediaLibrary:
                     album.add_song(media_file)
                     self._media_file_count += 1
 
+    def as_dict(self):
+        return {
+            'media_file_count': self.media_file_count,
+            'media_folders': list(map(lambda x: x.as_dict(), self.media_folders)),
+            'artists': list(map(lambda x: x.as_dict(), self.artists))
+        }
+
     @property
     def media_folders(self):
         """
@@ -91,6 +98,13 @@ class MediaLibrary:
             self._name = name
             self._media_files = []
             self._media_branches = []
+
+        def as_dict(self):
+            return {
+                'name': self.name,
+                'media_branches': list(map(lambda x: x.as_dict(), self._media_branches)),
+                'media_files': list(map(lambda x: x.as_dict(), self._media_files))
+            }
 
         def _add_media_file(self, media_file):
             """
@@ -133,6 +147,12 @@ class MediaLibrary:
             super().__init__(path.split(os.sep)[-1])
             self.add_media_file = self._add_media_file
 
+        def as_dict(self):
+            return {
+                'name': self.name,
+                'media_files': list(map(lambda x: x.as_dict(), self.media_files))
+            }
+
         @property
         def media_files(self):
             """
@@ -152,8 +172,13 @@ class MediaLibrary:
             :param name: 
             """
             super().__init__(name)
-            self._albums = self._media_branches
             self.add_album = self._add_branch
+
+        def as_dict(self):
+            return {
+                'name': self.name,
+                'albums': list(map(lambda x: x.as_dict(), self.albums)),
+            }
 
         @property
         def albums(self):
@@ -161,7 +186,7 @@ class MediaLibrary:
             Array, contains Album instances
             :return: array of Album instances
             """
-            return self._albums
+            return self._media_branches
 
     class Album(MediaBranch):
         """
@@ -175,6 +200,12 @@ class MediaLibrary:
             """
             super().__init__(name)
             self.add_song = self._add_media_file
+
+        def as_dict(self):
+            return {
+                'name': self.name,
+                'songs': list(map(lambda x: x.as_dict(), self.songs))
+            }
 
         @property
         def songs(self):
@@ -203,7 +234,7 @@ class MediaLibrary:
             self._artist = MediaLibrary.MediaFile.DEFAULT_ARTIST
             self._album = MediaLibrary.MediaFile.DEFAULT_ALBUM
             self._title = self._file_name_no_ext
-            self._totalTime = 0
+            self._total_time = 0
 
         def init_tags(self):
             """
@@ -218,13 +249,21 @@ class MediaLibrary:
                 if type(self._album) is list: self._album = ','.join(self._album)
                 self._title = media_info.tags.get("title", self._title)
                 if type(self._title) is list: self._title = ','.join(self._title)
-                self._totalTime = round(media_info.info.length*1000) # we need milliseconds, not seconds
+                self._total_time = round(media_info.info.length * 1000)  # we need milliseconds, not seconds
             except:
                 # Default tags if file has no tags
                 pass
 
         def __str__(self):
             return self._title
+
+        def as_dict(self):
+            return {
+                'artist': self.artist,
+                'album': self.album,
+                'title': self.title,
+                'total_time': self.total_time
+            }
 
         @property
         def full_path(self):
@@ -264,4 +303,4 @@ class MediaLibrary:
             Property, total time of the media in milliseconds
             :return: number total time of the media in milliseconds
             """
-            return self._totalTime
+            return self._total_time
