@@ -29,3 +29,7 @@ body {
       background-color: darkorange; }
     .media-player-container .media-player .seeker {
       cursor: pointer; }
+  .media-player-container .library .branch > ul {
+    display: none; }
+  .media-player-container .library .branch.opened > ul {
+    display: block; }

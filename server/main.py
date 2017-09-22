@@ -43,18 +43,23 @@ def ws_disconnect():
     print('disconnected')
 
 
-@socket.on('previousSong')
-def ws_previousSong():
+@socket.on('playFile')
+def ws_play_file(data):
+    print(data)
+
+
+@socket.on('previous')
+def ws_previous():
     pass
 
 
-@socket.on('nextSong')
-def ws_nextSong():
+@socket.on('next')
+def ws_next():
     pass
 
 
-@socket.on('pauseSong')
-def ws_pauseSong():
+@socket.on('pause')
+def ws_pause():
     pass
 
 

@@ -42,8 +42,16 @@ body {
         }
     }
 
-    .media-player-library {
+    .library {
+        .branch {
+            > ul {
+                display: none;
+            }
 
+            &.opened > ul {
+                display: block;
+            }
+        }
     }
 }
 

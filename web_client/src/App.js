@@ -49,7 +49,7 @@ class MediaPlayer extends Component {
                     <ConnectionStatus socket={this.socket}/>
                 </div>
                 <div className="clearfix"/>
-                <Library socket={this.socket} />
+                <Library socket={this.socket}/>
             </div>
         )
     }
@@ -168,15 +168,27 @@ class CurrentTrackInfo extends Component {
             totalTracks: 1,
             mediaInfo: new TrackInfo()
         };
+        this.interval = undefined;
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
             const curTrackInfo = data.cur_track_info;
             if (curTrackInfo) {
+                let mediaInfo = curTrackInfo.track_number !== undefined ? this.props.trackList[curTrackInfo.track_number] : this.state.mediaInfo;
                 this.setState({
                     trackNumber: curTrackInfo.track_number || this.state.trackNumber,
-                    curTime: curTrackInfo.cur_time || this.state.curTime,
+                    curTime: curTrackInfo.cur_time,
                     totalTracks: this.props.trackList.length,
-                    mediaInfo: curTrackInfo.track_number !== undefined ? this.props.trackList[curTrackInfo.track_number] : this.state.mediaInfo,
+                    mediaInfo: mediaInfo,
                 });
+                if(this.interval) clearInterval(this.interval);
+                this.interval = setInterval(() => {
+                    this.setState({
+                        curTime: this.state.curTime + 100
+                    });
+                    if(this.state.curTime > mediaInfo.totalTime) {
+                        this.props.socket.emit('getCurTrackInfo');
+                        setTimeout(() => {this.props.socket.emit('getCurTrackInfo')}, 1000);
+                    }
+                }, 100)
             }
         });
     }
@@ -201,17 +213,29 @@ class ProgressBar extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            progress: 0
+            progress: 0,
+            curTime: 0
         };
+        this.interval = undefined;
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
-            let progress = 0;
             let curTrackInfo = data.cur_track_info;
             if (curTrackInfo) {
-                let trackInfo = this.props.trackList[curTrackInfo.track_number];
-                progress = Math.round(curTrackInfo.cur_time * 100 / trackInfo.totalTime);
+                let mediaInfo = this.props.trackList[curTrackInfo.track_number];
                 this.setState({
-                    progress: progress
-                })
+                    progress: Math.round(curTrackInfo.cur_time * 100 / mediaInfo.totalTime),
+                    curTime: curTrackInfo.cur_time
+                });
+                if(this.interval) clearInterval(this.interval);
+                this.interval = setInterval(() => {
+                    this.setState({
+                        progress: Math.round((this.state.curTime + 100) * 100 / mediaInfo.totalTime),
+                        curTime: this.state.curTime + 100
+                    });
+                    if(this.state.curTime > mediaInfo.totalTime) {
+                        this.props.socket.emit('getCurTrackInfo');
+                        setTimeout(() => {this.props.socket.emit('getCurTrackInfo')}, 1000);
+                    }
+                }, 100)
             }
 
         });
@@ -256,6 +280,8 @@ class Library extends Component {
             }
         );
 
+        this.ulStyle = {display: 'none'};
+
         this.handleArtistsClick = this.handleArtistsClick.bind(this);
         this.handleFoldersClick = this.handleFoldersClick.bind(this);
     }
@@ -263,23 +289,47 @@ class Library extends Component {
     handleArtistsClick() {
         this.setState({
             currentBranch: 'artists'
-        })
+        });
     }
 
     handleFoldersClick() {
         this.setState({
             currentBranch: 'folders'
-        })
+        });
     }
 
     render() {
-        let branch = null;
+        let list = null;
         switch (this.state.currentBranch) {
             case 'artists':
-                branch = (<ArtistsBranch library={this.state.library}/>);
+                let artists = this.state.library.artists || [];
+                list = (
+                    <div className={"artists"}>
+                        <ul>
+                            {artists.map((artist, artistIndex) =>
+                                <li key={artistIndex}>
+                                    <Artist name={artist.name} albums={artist.albums || []} artistIndex={artistIndex} socket={this.props.socket}/>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+                );
                 break;
             case 'folders':
-                branch = (<FoldersBranch library={this.state.library}/>);
+                let folders = this.state.library.media_folders || [];
+                list = (
+                    <div className="folders">
+                        <ul>
+                            {folders.map((folder, folderIndex) => {
+                                return (
+                                    <li key={folderIndex}>
+                                        <Folder name={folder.name} files={folder.media_files || []} folderIndex={folderIndex} socket={this.props.socket}/>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    </div>
+                );
                 break;
             default:
                 // do nothing
@@ -290,100 +340,102 @@ class Library extends Component {
             <div className="library">
                 <button onClick={this.handleArtistsClick}>Artists</button>
                 <button onClick={this.handleFoldersClick}>Folders</button>
-                {branch}
+                {list}
             </div>
         )
     }
 }
 
-//TODO remove and do statically in Library
-
-class LibraryBranch extends Component {
+class Branch extends Component {
     constructor(props) {
         super(props);
-        this.itemList = [];
+        this.state = {
+            collapsed: true
+        };
+        this.handleToggleClick = this.handleToggleClick.bind(this);
     }
 
+    handleToggleClick() {
+        this.setState({
+            collapsed: !this.state.collapsed
+        })
+    }
+}
+
+class Folder extends Branch {
     render() {
         return (
-            <div className="branch">
-                {this.name}
-                <ul>{this.itemList}</ul>
+            <div className={this.state.collapsed ? 'folder branch' : 'folder branch opened'}>
+                {this.props.name}
+                <button onClick={this.handleToggleClick}>Toggle</button>
+                <ul>
+                    {this.props.files.map((file, fileIndex) =>
+                        <LibraryFile key={fileIndex} type="folderFile" artist={file.artist} title={file.title} folderIndex={this.props.folderIndex} fileIndex={fileIndex} socket={this.props.socket}/>
+                    )}
+                </ul>
+            </div>
+        )
+    }
+}
+
+class Artist extends Branch {
+    render() {
+        return (
+            <div className={this.state.collapsed ? 'artist branch' : 'artist branch opened'}>
+                {this.props.name}
+                <button onClick={this.handleToggleClick}>Toggle</button>
+                <ul>
+                    {this.props.albums.map((album, albumIndex) =>
+                        <li key={albumIndex}>
+                            <Album name={album.name} songs={album.songs || []} albumIndex={albumIndex} artistIndex={this.props.artistIndex} socket={this.props.socket}/>
+                        </li>
+                    )}
+                </ul>
+            </div>
+        )
+    }
+}
+
+class Album extends Branch {
+    render() {
+        return (
+            <div className={this.state.collapsed ? 'album branch' : 'album branch opened'}>
+                {this.props.name}
+                <button onClick={this.handleToggleClick}>Toggle</button>
+                <ul>
+                    {this.props.songs.map((song, songIndex) =>
+                        <LibraryFile key={songIndex} type="artistFile" title={song.title} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} socket={this.props.socket}/>
+                    )}
+                </ul>
             </div>
         )
     }
 }
 
 class LibraryFile extends Component {
+    constructor(props) {
+        super(props);
+
+        this.handleClick = this.handleClick.bind(this);
+    }
+
+    handleClick() {
+        this.props.socket.emit('playFile', {
+            'type': this.props.type,
+            'folderIndex': this.props.folderIndex,
+            'artistIndex': this.props.artistIndex,
+            'albumIndex': this.props.albumIndex,
+            'fileIndex': this.props.fileIndex
+        });
+    }
+
     render() {
+        let str = this.props.fileIndex + ' - ' + (this.props.artist ? this.props.artist + ' - ' : '') + this.props.title;
         return (
-            <li>
-                {this.props.number} - {this.props.title}
+            <li onClick={this.handleClick}>
+                {str}
             </li>
         )
-    }
-}
-
-class FoldersBranch extends LibraryBranch {
-    constructor(props) {
-        super(props);
-        let folders = this.props.library.media_folders;
-        if (folders && folders.length > 0) {
-            for (let [index, folder] of folders.entries()) {
-                this.itemList.push(<li key={index}><Folder folder={folder}/></li>);
-            }
-        }
-    }
-}
-
-class Folder extends LibraryBranch {
-    constructor(props) {
-        super(props);
-        this.name = this.props.folder.name;
-        let files = this.props.folder.media_files;
-        if (files && files.length > 0) {
-            for (let [index, file] of files.entries()) {
-                this.itemList.push(<LibraryFile key={index} title={file.title} number={index}/>)
-            }
-        }
-    }
-}
-
-class ArtistsBranch extends LibraryBranch {
-    constructor(props) {
-        super(props);
-        let artists = this.props.library.artists;
-        if (artists && artists.length > 0) {
-            for (let [index, artist] of artists.entries()) {
-                this.itemList.push(<li key={index}><Artist artist={artist}/></li>);
-            }
-        }
-    }
-}
-
-class Artist extends LibraryBranch {
-    constructor(props) {
-        super(props);
-        this.name = this.props.artist.name;
-        let albums = this.props.artist.albums;
-        if (albums && albums.length > 0) {
-            for (let [index, album] of albums.entries()) {
-                this.itemList.push(<li key={index}><Album album={album}/></li>);
-            }
-        }
-    }
-}
-
-class Album extends LibraryBranch {
-    constructor(props) {
-        super(props);
-        this.name = this.props.album.name;
-        let songs = this.props.album.songs;
-        if (songs && songs.length > 0) {
-            for (let [index, song] of songs.entries()) {
-                this.itemList.push(<LibraryFile key={index} title={song.title} number={index}/>)
-            }
-        }
     }
 }
 
