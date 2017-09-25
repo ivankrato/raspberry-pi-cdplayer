@@ -1,13 +1,11 @@
 import queue
 from threading import Thread, Lock
 import subprocess
-import pty
-import os
-import select
 from time import sleep
 from enum import Enum
 from classes.MediaLibrary import MediaLibrary
 from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
+import json
 
 
 class MediaPlayer:
@@ -17,69 +15,49 @@ class MediaPlayer:
 
     def __init__(self):
         self._cd = CD()
-        self._mplayer = None
-        self._mplayer_stdout = None
+        self._mpv = None
         self._current_disk_type = None
         self._media_library = None
         self._current_track_list = None
-        self._mplayer_lock = Lock()
+        self._mpv_lock = Lock()
         self._info_events = None
         self._info_event_thread = None
+        self._current_track = 0
 
     def _info_event_loop(self):
         while self.is_running:
-            # self._mplayer_lock.acquire()
-            # self._info_events.put(self.get_current_info())
-            # self._mplayer_lock.release()
+            # self._mpv_lock.acquire()
+            self._info_events.put(self.get_current_info())
+            # self._mpv_lock.release()
             sleep(10)
 
     def get_current_info(self, status=True, cur_track_info=True, track_list=False, library=False):
         info = MediaPlayerInfo()
-        stdin = self._mplayer.stdin
-        stdout = self._mplayer_stdout
         if self.is_running:
             if status:
-                stdin.write(b'pausing_keep_force get_property pause\n')
+                # TODO change commands
+                status_res = self._run_command('get_property pause')
+                info.status = 'paused' if status_res else 'playing'
             if cur_track_info:
-                # TODO check MP3 (probably need different commands)
                 info.cur_track_info = CurrentTrackInfo()
+                # TODO check MP3 (probably need different commands)
                 if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
-                    stdin.write(b'get_property chapter\n')
-                stdin.write(b'get_property time_pos\n')
+                    chapter_res = self._run_command('get_property chapter')
+                    self._current_track = chapter_res
+                    info.cur_track_info.track_number = chapter_res
+                if self._current_track is not None:
+                    time_res = self._run_command('get_property time-pos')
+                    time_millis = time_res*1000
+                    for track in self._current_track_list[0:self._current_track]:
+                        time_millis -= track.total_time
+                    info.cur_track_info.cur_time = time_millis
             if track_list and self._current_track_list is not None:
                 info.track_list = list(map(lambda x: x.as_dict(), self._current_track_list))
             if library and self._media_library is not None:
                 info.library = self._media_library.as_dict()
-            stdin.flush()
-            sleep(0.05)
-            # give mplayer a little bit of time to create output
-            while select.select([stdout], [], [], 0.05)[0]:
-                line = stdout.readline()
-                print(line, end='')
-
-                def get_value(ans):
-                    output_split = line.split(ans + '=')
-                    if len(output_split) == 2 and output_split[0] == '':
-                        return output_split[1].rstrip()
-
-                pause = get_value('ANS_pause')
-                if pause == 'yes':
-                    info.status = 'paused'
-                elif pause == 'no':
-                    info.status = 'playing'
-
-                chapter = get_value('ANS_chapter')
-                if chapter is not None:
-                    info.cur_track_info.track_number = int(chapter)
-
-                time_pos = get_value('ANS_time_pos')
-                if time_pos is not None and info.cur_track_info.track_number is not None:
-                    time_millis = float(time_pos) * 1000
-                    for track_info in self._current_track_list[0:info.cur_track_info.track_number]:
-                        time_millis -= track_info.total_time
-                    info.cur_track_info.cur_time = time_millis
         else:
             info.status = 'waitingForCD'
+
         return info
 
     def poll_info(self):
@@ -91,15 +69,13 @@ class MediaPlayer:
 
     def try_play_cd(self):
         self._info_events = queue.Queue()
-        master, slave = pty.openpty()
         if not self.is_running and self._check_for_cd() == MediaPlayer.DiskType.AUDIO_CD:
             # check for audio CD
             print('playing audio CD')
-            self._mplayer = subprocess.Popen(
-                ["mplayer", "-slave", "-quiet", "-ao", "alsa:device=hw=1.0", "cdda://:1", "-cache", "1024"],
-                stdin=subprocess.PIPE, stdout=slave, bufsize=1)
+            self._mpv = subprocess.Popen(
+                ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0", "cdda://", "--cache=1024",
+                 "--input-ipc-server=/tmp/mpvsocket"], bufsize=1)
 
-        self._mplayer_stdout = os.fdopen(master)
         self._info_event_thread = Thread(target=self._info_event_loop, args=[])
         self._info_event_thread.setDaemon(True)
         self._info_event_thread.start()
@@ -125,22 +101,36 @@ class MediaPlayer:
                         return None
         return self._current_disk_type
 
+    def _run_command(self, command):
+        command_json = {
+            "command": command.split()
+        }
+        command_json_str = json.dumps(command_json) + '\n'
+        socat = subprocess.Popen(['socat', '-', '/tmp/mpvsocket'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        socat_output = socat.communicate(command_json_str.encode('utf-8'))
+        if socat_output[0] is not None and len(socat_output[0]) != 0 and socat_output[1] is None:
+            data = json.loads(socat_output[0].decode())
+            return data['data']
+
     def next_track(self):
-        self._mplayer.stdin.write(b'seek_chapter 1\n')
+        self._run_command('add chapter 1')
         self._info_events.put(self.get_current_info())
 
     def prev_track(self):
-        self._mplayer.stdin.write(b'seek_chapter -1\n')
+        self._run_command('add chapter -1')
         self._info_events.put(self.get_current_info())
 
-    def play_pause(self):
-        self._mplayer.stdin.write(b'pause\n')
-        self._info_events.put(self.get_current_info())
+    def pause(self):
+        self._run_command('set pause yes')
+        self._info_events.put(self.get_current_info(cur_track_info=False))
 
+    def play(self):
+        self._run_command('set pause no')
+        self._info_events.put(self.get_current_info(cur_track_info=False))
 
     @property
     def is_running(self):
-        return self._mplayer is not None and self._mplayer.poll() is None
+        return self._mpv is not None and self._mpv.poll() is None
 
 
 class CD:

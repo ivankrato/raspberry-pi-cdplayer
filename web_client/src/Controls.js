@@ -65,6 +65,7 @@ class PlayPause extends Component {
     constructor(props) {
         super(props);
         this.state = {
+            type: 'play',
             icon: 'play'
         };
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
@@ -73,9 +74,11 @@ class PlayPause extends Component {
                 let icon;
                 switch (data.status) {
                     case 'playing':
+                        type = 'pause';
                         icon = 'pause';
                         break;
                     default:
+                        type = 'play';
                         icon = 'play';
                         break;
                 }
@@ -89,7 +92,7 @@ class PlayPause extends Component {
 
     render() {
         return (
-            <Control type="pause" icon={this.state.icon} enabled={this.props.enabled} socket={this.props.socket} />
+            <Control type={this.state.type} icon={this.state.icon} enabled={this.props.enabled} socket={this.props.socket} />
         )
     }
 }

@@ -26,7 +26,9 @@ def index():
 @socket.on('connect')
 def ws_connect():
     emit('status', 'connected')
-    socket.emit('media_player_info', media_player.get_current_info(track_list=True, library=True).as_dict())
+    socket.emit('media_player_info', media_player.get_current_info(False, False, True, True).as_dict())
+    sleep(0.2)
+    socket.emit('media_player_info', media_player.get_current_info().as_dict())
     """
     media_library = MediaLibrary()
     media_library.init('D:\OneDrive\Hudba\Arjen Anthony Lucassen')
@@ -49,6 +51,7 @@ def ws_disconnect():
 
 @socket.on('getCurTrackInfo')
 def ws_get_current_track_info():
+    socket.emit('media_player_info', media_player.get_current_info(True, True, True, True).as_dict())
     print('getCurTrackInfo')
 
 
@@ -87,13 +90,13 @@ def ws_next_track():
 
 @socket.on('play')
 def ws_play():
-    media_player.play_pause()
+    media_player.play()
     print('play')
 
 
 @socket.on('pause')
 def ws_pause():
-    media_player.play_pause()
+    media_player.pause()
     print('pause')
 
 

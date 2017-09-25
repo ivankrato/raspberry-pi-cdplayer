@@ -23,7 +23,7 @@ class MediaPlayerInfo:
 
 
 class CurrentTrackInfo:
-    def __init__(self, cur_time=0, track_number=0):
+    def __init__(self, cur_time=None, track_number=None):
         self.cur_time = cur_time
         self.track_number = track_number
 
@@ -35,7 +35,7 @@ class CurrentTrackInfo:
 
 
 class TrackInfo:
-    def __init__(self, total_time=0, artist=DEFAULT_ARTIST, album=DEFAULT_ALBUM, title=DEFAULT_TITLE):
+    def __init__(self, total_time=None, artist=DEFAULT_ARTIST, album=DEFAULT_ALBUM, title=DEFAULT_TITLE):
         self.total_time = total_time
         self.artist = artist
         self.album = album
