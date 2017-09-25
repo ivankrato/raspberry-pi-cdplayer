@@ -1,6 +1,21 @@
-body {
-    font-size: 24px;
-    font-family: 'Space Mono', monospace;
+@import 'fa/font-awesome.scss';
+
+$grid-gutter-width: 30px;
+$color-main: darkorange;
+
+* {
+    box-sizing: border-box;
+}
+
+.row {
+    margin-left: -$grid-gutter-width/2;
+    margin-right: -$grid-gutter-width/2;
+
+    &:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
 }
 
 .clearfix:after {
@@ -9,9 +24,24 @@ body {
     clear: both;
 }
 
+.col-50 {
+    float: left;
+    width: 50%;
+    min-height: 1px;
+    padding-right: $grid-gutter-width/2;
+    padding-left: $grid-gutter-width/2;
+}
+
+body {
+    font-size: 24px;
+    font-family: 'Space Mono', monospace;
+    padding-right: $grid-gutter-width/2;
+    padding-left: $grid-gutter-width/2;
+    margin: 0;
+}
+
 .media-player-container {
     padding: 50px 0 0;
-    max-width: 1200px;
     margin: 0 auto;
 
     .media-player {
@@ -22,6 +52,7 @@ body {
             position: relative;
             height: 20px;
             background-color: lightgray;
+            overflow-x: hidden;
         }
 
         .progress-bar,
@@ -34,24 +65,75 @@ body {
         }
 
         .progress-bar {
-            background-color: darkorange;
+            background-color: $color-main;
         }
 
         .seeker {
             cursor: pointer;
         }
+
+        .controls {
+            padding-top: 20px;
+            color: $color-main;
+            font-size: 40px;
+            text-align: center;
+
+            .control {
+                display: inline-block;
+                margin: 0 15px;
+                border: 3px solid $color-main;
+                border-radius: 50%;
+                width: 65px;
+                cursor: pointer;
+            }
+
+            &.disabled {
+                color: gray;
+
+                .control {
+                    border-color: gray;
+                    cursor: default;
+                }
+            }
+        }
+    }
+
+    .library,
+    .track-list {
+        overflow-y: auto;
+
+        .song,
+        .track {
+            cursor: pointer;
+
+            &.active {
+                background: $color-main;
+            }
+        }
+
+        ul,
+        ol {
+            margin: 0;
+            padding-left: 60px;
+        }
     }
 
     .library {
         .branch {
-            > ul {
+            > ul,
+            > ol {
                 display: none;
             }
 
-            &.opened > ul {
+            &.opened > ul,
+            &.opened > ol {
                 display: block;
             }
         }
+    }
+
+    .track-list {
+
     }
 }
 

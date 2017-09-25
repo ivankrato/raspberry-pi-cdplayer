@@ -2,7 +2,7 @@
   "status": "playing",
   "cur_track_info": {
     "cur_time": 275135,
-    "track_number": 0
+    "track_number": 1
   },
   "track_list": [
     {
@@ -12,7 +12,7 @@
       "title": "Title"
     },
     {
-      "total_time": 350000,
+      "total_time": 285100,
       "artist": "Artist",
       "album": "Album",
       "title": "Title"
