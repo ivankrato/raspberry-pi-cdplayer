@@ -23,8 +23,3 @@ yarn-error.log*
 .idea
 
 *.css
-
-/_old
-_old
-_old/*
-/_old/*
