@@ -25,3 +25,6 @@ yarn-error.log*
 *.css
 
 /_old
+_old
+_old/*
+/_old/*
