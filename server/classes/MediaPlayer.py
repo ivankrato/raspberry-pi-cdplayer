@@ -7,11 +7,16 @@ from classes.MediaLibrary import MediaLibrary
 from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
 import json
 
+#TODO: library frontend, change playlist, PiFace CAD
 
 class MediaPlayer:
     class DiskType(Enum):
         AUDIO_CD = 'audio_cd'
         MP3_CD = 'mp3_cd'
+
+    MPV_COMMAND = ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0",
+                   "--cache=1024",
+                   "--input-ipc-server=/tmp/mpvsocket"]
 
     def __init__(self):
         self._cd = CD()
@@ -29,32 +34,36 @@ class MediaPlayer:
             # self._mpv_lock.acquire()
             self._info_events.put(self.get_current_info())
             # self._mpv_lock.release()
-            sleep(10)
+            sleep(1)
 
     def get_current_info(self, status=True, cur_track_info=True, track_list=False, library=False):
         info = MediaPlayerInfo()
         if self.is_running:
             if status:
-                # TODO change commands
                 status_res = self._run_command('get_property pause')
                 info.status = 'paused' if status_res else 'playing'
             if cur_track_info:
                 info.cur_track_info = CurrentTrackInfo()
-                # TODO check MP3 (probably need different commands)
                 if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
                     chapter_res = self._run_command('get_property chapter')
                     self._current_track = chapter_res
                     info.cur_track_info.track_number = chapter_res
+                elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+                    playlist_pos_res = self._run_command('get_property playlist-pos')
+                    self._current_track = playlist_pos_res
+                    info.cur_track_info.track_number = playlist_pos_res
                 if self._current_track is not None:
                     time_res = self._run_command('get_property time-pos')
-                    time_millis = time_res*1000
-                    for track in self._current_track_list[0:self._current_track]:
-                        time_millis -= track.total_time
-                    info.cur_track_info.cur_time = time_millis
+                    if time_res is not None:
+                        time_millis = time_res * 1000
+                        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+                            for track in self._current_track_list[0:self._current_track]:
+                                time_millis -= track.total_time
+                        info.cur_track_info.cur_time = time_millis
             if track_list and self._current_track_list is not None:
                 info.track_list = list(map(lambda x: x.as_dict(), self._current_track_list))
             if library and self._media_library is not None:
-                info.library = self._media_library.as_dict()
+                info.library = self._media_library
         else:
             info.status = 'waitingForCD'
 
@@ -69,17 +78,25 @@ class MediaPlayer:
 
     def try_play_cd(self):
         self._info_events = queue.Queue()
-        if not self.is_running and self._check_for_cd() == MediaPlayer.DiskType.AUDIO_CD:
-            # check for audio CD
-            print('playing audio CD')
-            self._mpv = subprocess.Popen(
-                ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0", "cdda://", "--cache=1024",
-                 "--input-ipc-server=/tmp/mpvsocket"], bufsize=1)
-
-        self._info_event_thread = Thread(target=self._info_event_loop, args=[])
-        self._info_event_thread.setDaemon(True)
-        self._info_event_thread.start()
-        # TODO send new track list
+        if not self.is_running:
+            cd_type = self._check_for_cd()
+            if cd_type == MediaPlayer.DiskType.AUDIO_CD:
+                # check for audio CD
+                print('playing audio CD')
+                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND + [
+                    'cdda://'
+                ], bufsize=1)
+            elif cd_type == MediaPlayer.DiskType.MP3_CD:
+                # check for MP3 CD
+                print('playing MP3 CD')
+                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
+                                             [self._media_library.media_folders[0].path],
+                                             bufsize=1)
+            self._info_event_thread = Thread(target=self._info_event_loop, args=[])
+            self._info_event_thread.setDaemon(True)
+            self._info_event_thread.start()
+            sleep(1)
+            self._info_events.put(self.get_current_info(True, True, True, True))
 
     def _check_for_cd(self):
         if not self.is_running:
@@ -97,27 +114,46 @@ class MediaPlayer:
                     self._media_library.init(mount_point)
                     if self._media_library.media_file_count > 0:
                         self._current_disk_type = MediaPlayer.DiskType.MP3_CD
+                        self._current_track_list = list(map(
+                            lambda media_info,: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
+                                                          media_info.title), self._media_library.media_folders[0].media_files))
+                        print(self._media_library.as_dict())
                     else:
                         return None
         return self._current_disk_type
 
     def _run_command(self, command):
-        command_json = {
+        command_dict = {
             "command": command.split()
         }
-        command_json_str = json.dumps(command_json) + '\n'
+        command_json = json.dumps(command_dict) + '\n'
         socat = subprocess.Popen(['socat', '-', '/tmp/mpvsocket'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        socat_output = socat.communicate(command_json_str.encode('utf-8'))
+        socat_output = socat.communicate(command_json.encode('utf-8'))
         if socat_output[0] is not None and len(socat_output[0]) != 0 and socat_output[1] is None:
             data = json.loads(socat_output[0].decode())
-            return data['data']
+            try:
+                return data['data']
+            except:
+                return None
 
     def next_track(self):
-        self._run_command('add chapter 1')
+        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+            self._run_command('add chapter 1')
+        elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+            self._run_command('add playlist-pos 1')
+        sleep(0.2)
+        self._info_events.put(self.get_current_info())
+        sleep(1)
         self._info_events.put(self.get_current_info())
 
     def prev_track(self):
-        self._run_command('add chapter -1')
+        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+            self._run_command('add chapter -1')
+        elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+            self._run_command('add playlist-pos -1')
+        sleep(0.2)
+        self._info_events.put(self.get_current_info())
+        sleep(1)
         self._info_events.put(self.get_current_info())
 
     def pause(self):
@@ -126,7 +162,19 @@ class MediaPlayer:
 
     def play(self):
         self._run_command('set pause no')
-        self._info_events.put(self.get_current_info(cur_track_info=False))
+        self._info_events.put(self.get_current_info())
+
+    def stop(self):
+        try:
+            self._mpv.kill()
+        except:
+            print("Nothing is playing.")
+        subprocess.Popen(['eject', 'cdrom'])
+        self._current_disk_type = None
+        self._current_track = 0
+        self._current_track_list = None
+        self._media_library = None
+        self._info_events.put(self.get_current_info(True, True, True, True))
 
     @property
     def is_running(self):

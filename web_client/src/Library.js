@@ -154,7 +154,7 @@ class Album extends Branch {
                     {this.props.songs.map((song, songIndex) => {
                         let trackInfo = new TrackInfo(song);
                         return (
-                            <LibraryFile key={songIndex} type="artistFile" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} socket={this.props.socket}/>
+                            <LibraryFile key={songIndex} type="artistFile" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} listArtist={false} socket={this.props.socket}/>
                         )
                     })}
                 </ol>
@@ -183,7 +183,7 @@ class LibraryFile extends Component {
     render() {
         return (
             <li onClick={this.handleClick} className="song">
-                {this.props.trackInfo.getTrackTitleInfo(false)} ({this.props.trackInfo.getTotalTimeString()})
+                {this.props.trackInfo.getTrackTitleInfo(this.props.listArtist)} ({this.props.trackInfo.getTotalTimeString()})
             </li>
         )
     }

@@ -102,6 +102,7 @@ def ws_pause():
 
 @socket.on('eject')
 def ws_eject():
+    media_player.stop()
     print('eject')
 
 
@@ -116,6 +117,8 @@ def media_player_info_loop(media_player):
             print(info.as_dict())
             socket.emit('media_player_info', info.as_dict())
         sleep(0.1)
+    # FIXME this doesn't get emitted
+    socket.emit('media_player_info', media_player.get_current_info(True, False, False, False))
 
 
 

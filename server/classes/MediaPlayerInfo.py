@@ -4,8 +4,8 @@ DEFAULT_TITLE = "Track"
 
 
 class MediaPlayerInfo:
-    def __init__(self):
-        self.status = None
+    def __init__(self, status=None):
+        self.status = status
         self.cur_track_info = None
         self.track_list = None
         self.library = None

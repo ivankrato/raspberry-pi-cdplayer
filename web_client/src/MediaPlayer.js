@@ -12,7 +12,7 @@ export default class MediaPlayer extends Component {
             mediaPlayerStatus: 'Loading',
             trackList: [],
         };
-        this.socket = new Socket('http://192.168.1.24:5123'); //TODO change URL to window.location.href
+        this.socket = new Socket('http://192.168.0.108:5123'); //TODO change URL to window.location.href
 
         /*
          * MEDIAPLAYER EVENTS
@@ -166,6 +166,9 @@ class CurrentTrackInfo extends Component {
                     }, 100)
                 }
             }
+            if(data.status === 'paused' && this.interval) {
+                clearInterval(this.interval);
+            }
         });
     }
 
@@ -218,7 +221,9 @@ class ProgressBar extends Component {
                     }, 100)
                 }
             }
-
+            if(data.status === 'paused' && this.interval) {
+                clearInterval(this.interval);
+            }
         });
 
         this.handleSeekerClick = this.handleSeekerClick.bind(this);

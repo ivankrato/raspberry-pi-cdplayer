@@ -161,6 +161,10 @@ class MediaLibrary:
             """
             return self._media_files
 
+        @property
+        def path(self):
+            return self._path
+
     class Artist(MediaBranch):
         """
         Class Artist inherits MediaBranch represents an artist with some albums
