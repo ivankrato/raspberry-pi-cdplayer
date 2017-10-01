@@ -7,7 +7,8 @@ from classes.MediaLibrary import MediaLibrary
 from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
 import json
 
-#TODO: library frontend, change playlist, PiFace CAD
+
+# TODO: library frontend, change playlist
 
 class MediaPlayer:
     class DiskType(Enum):
@@ -26,15 +27,7 @@ class MediaPlayer:
         self._current_track_list = None
         self._mpv_lock = Lock()
         self._info_events = None
-        self._info_event_thread = None
         self._current_track = 0
-
-    def _info_event_loop(self):
-        while self.is_running:
-            # self._mpv_lock.acquire()
-            self._info_events.put(self.get_current_info())
-            # self._mpv_lock.release()
-            sleep(1)
 
     def get_current_info(self, status=True, cur_track_info=True, track_list=False, library=False):
         info = MediaPlayerInfo()
@@ -92,9 +85,6 @@ class MediaPlayer:
                 self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
                                              [self._media_library.media_folders[0].path],
                                              bufsize=1)
-            self._info_event_thread = Thread(target=self._info_event_loop, args=[])
-            self._info_event_thread.setDaemon(True)
-            self._info_event_thread.start()
             sleep(1)
             self._info_events.put(self.get_current_info(True, True, True, True))
 
@@ -116,7 +106,8 @@ class MediaPlayer:
                         self._current_disk_type = MediaPlayer.DiskType.MP3_CD
                         self._current_track_list = list(map(
                             lambda media_info,: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
-                                                          media_info.title), self._media_library.media_folders[0].media_files))
+                                                          media_info.title),
+                            self._media_library.media_folders[0].media_files))
                         print(self._media_library.as_dict())
                     else:
                         return None
@@ -130,8 +121,8 @@ class MediaPlayer:
         socat = subprocess.Popen(['socat', '-', '/tmp/mpvsocket'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         socat_output = socat.communicate(command_json.encode('utf-8'))
         if socat_output[0] is not None and len(socat_output[0]) != 0 and socat_output[1] is None:
-            data = json.loads(socat_output[0].decode())
             try:
+                data = json.loads(socat_output[0].decode())
                 return data['data']
             except:
                 return None
@@ -179,6 +170,10 @@ class MediaPlayer:
     @property
     def is_running(self):
         return self._mpv is not None and self._mpv.poll() is None
+
+    @property
+    def current_track_list(self):
+        return self._current_track_list
 
 
 class CD:
