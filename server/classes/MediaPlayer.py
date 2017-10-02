@@ -1,5 +1,4 @@
 import queue
-from threading import Thread, Lock
 import subprocess
 from time import sleep
 from enum import Enum
@@ -8,7 +7,7 @@ from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
 import json
 
 
-# TODO: library frontend, change playlist
+# TODO: change playlist, set data on reconnect, library CSS
 
 class MediaPlayer:
     class DiskType(Enum):
@@ -16,7 +15,7 @@ class MediaPlayer:
         MP3_CD = 'mp3_cd'
 
     MPV_COMMAND = ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0",
-                   "--cache=1024",
+                   "--cache=1024", "--loop",
                    "--input-ipc-server=/tmp/mpvsocket"]
 
     def __init__(self):
@@ -25,7 +24,7 @@ class MediaPlayer:
         self._current_disk_type = None
         self._media_library = None
         self._current_track_list = None
-        self._mpv_lock = Lock()
+        self._current_media_library_branch_type_index = None
         self._info_events = None
         self._current_track = 0
 
@@ -33,20 +32,20 @@ class MediaPlayer:
         info = MediaPlayerInfo()
         if self.is_running:
             if status:
-                status_res = self._run_command('get_property pause')
+                status_res = self._run_command('get_property', 'pause')
                 info.status = 'paused' if status_res else 'playing'
             if cur_track_info:
                 info.cur_track_info = CurrentTrackInfo()
                 if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
-                    chapter_res = self._run_command('get_property chapter')
+                    chapter_res = self._run_command('get_property', 'chapter')
                     self._current_track = chapter_res
                     info.cur_track_info.track_number = chapter_res
                 elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
-                    playlist_pos_res = self._run_command('get_property playlist-pos')
+                    playlist_pos_res = self._run_command('get_property', 'playlist-pos')
                     self._current_track = playlist_pos_res
                     info.cur_track_info.track_number = playlist_pos_res
                 if self._current_track is not None:
-                    time_res = self._run_command('get_property time-pos')
+                    time_res = self._run_command('get_property', 'time-pos')
                     if time_res is not None:
                         time_millis = time_res * 1000
                         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
@@ -85,6 +84,7 @@ class MediaPlayer:
                 self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
                                              [self._media_library.media_folders[0].path],
                                              bufsize=1)
+                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS, 0)
             sleep(1)
             self._info_events.put(self.get_current_info(True, True, True, True))
 
@@ -105,54 +105,112 @@ class MediaPlayer:
                     if self._media_library.media_file_count > 0:
                         self._current_disk_type = MediaPlayer.DiskType.MP3_CD
                         self._current_track_list = list(map(
-                            lambda media_info,: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
-                                                          media_info.title),
+                            lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
+                                                         media_info.title),
                             self._media_library.media_folders[0].media_files))
                         print(self._media_library.as_dict())
                     else:
                         return None
         return self._current_disk_type
 
-    def _run_command(self, command):
+    def _run_command(self, *command):
         command_dict = {
-            "command": command.split()
+            "command": command
         }
         command_json = json.dumps(command_dict) + '\n'
         socat = subprocess.Popen(['socat', '-', '/tmp/mpvsocket'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         socat_output = socat.communicate(command_json.encode('utf-8'))
-        if socat_output[0] is not None and len(socat_output[0]) != 0 and socat_output[1] is None:
+        if socat_output[0] is not None and \
+                        len(socat_output[0]) != 0 and \
+                        socat_output[1] is None:
             try:
                 data = json.loads(socat_output[0].decode())
                 return data['data']
             except:
                 return None
 
+    def _put_info_with_delay(self, full=False):
+        if full:
+            sleep(0.2)
+            self._info_events.put(self.get_current_info(True, True, True, True))
+            sleep(1)
+            self._info_events.put(self.get_current_info(True, True, True, True))
+        else:
+            sleep(0.2)
+            self._info_events.put(self.get_current_info())
+            sleep(1)
+            self._info_events.put(self.get_current_info())
+
     def next_track(self):
-        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
-            self._run_command('add chapter 1')
-        elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
-            self._run_command('add playlist-pos 1')
-        sleep(0.2)
-        self._info_events.put(self.get_current_info())
-        sleep(1)
-        self._info_events.put(self.get_current_info())
+        last_track = len(self._current_track_list) - 1
+        if self._current_track != last_track:
+            if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+                self._run_command('add', 'chapter', '1')
+            elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+                self._run_command('add', 'playlist-pos', '1')
+        else:
+            if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+                self._run_command('set', 'chapter', '0')
+            elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+                self._run_command('set', 'playlist-pos', '0')
+        self._put_info_with_delay()
 
     def prev_track(self):
+        if self._current_track != 0:
+            if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+                self._run_command('add', 'chapter', '-1')
+            elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+                self._run_command('add', 'playlist-pos', '-1')
+        else:
+            last_track = len(self._current_track_list) - 1
+            if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+                self._run_command('set', 'chapter', str(last_track))
+            elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+                self._run_command('set', 'playlist-pos', str(last_track))
+        self._put_info_with_delay()
+
+    def play_track(self, track_number):
         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
-            self._run_command('add chapter -1')
+            self._run_command('set', 'chapter', str(track_number))
         elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
-            self._run_command('add playlist-pos -1')
-        sleep(0.2)
-        self._info_events.put(self.get_current_info())
-        sleep(1)
-        self._info_events.put(self.get_current_info())
+            self._run_command('set', 'playlist-pos', str(track_number))
+        self._put_info_with_delay()
+
+    def play_file(self, data):
+        if self._current_disk_type == MediaPlayer.DiskType.MP3_CD and \
+                        data['mediaLibraryType'] is not None and \
+                        data['indexes'] is not None:
+            files = None
+            file_index = 0
+            print(data)
+            if data['mediaLibraryType'] == 'folders':
+                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS,
+                                                                 data['indexes'][0])
+                files = self._media_library.media_folders[data['indexes'][0]].media_files
+            elif data['mediaLibraryType'] == 'artists':
+                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.ARTISTS,
+                                                                 data['indexes'][1],
+                                                                 data['indexes'][2])
+                files = self._media_library.artists[data['indexes'][1]].albums[data['indexes'][2]].songs
+            file_index = data['indexes'][3]
+            if files is not None:
+                ordered_files = files[file_index:] + files[0:file_index]
+                self._current_track_list = list(map(
+                    lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
+                                                 media_info.title),
+                    ordered_files))
+                self._run_command('playlist-clear')
+                self._run_command('loadfile', files[file_index].full_path)
+                for file in ordered_files[1:]:
+                    self._run_command('loadfile', file.full_path, 'append')
+        self._put_info_with_delay(True)
 
     def pause(self):
-        self._run_command('set pause yes')
+        self._run_command('set', 'pause', 'yes')
         self._info_events.put(self.get_current_info(cur_track_info=False))
 
     def play(self):
-        self._run_command('set pause no')
+        self._run_command('set', 'pause', 'no')
         self._info_events.put(self.get_current_info())
 
     def stop(self):
@@ -164,8 +222,18 @@ class MediaPlayer:
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None
+        self._current_media_library_branch_type_index = None
         self._media_library = None
         self._info_events.put(self.get_current_info(True, True, True, True))
+
+    def seek(self, seek_percent):
+        time_millis = self._current_track_list[self._current_track].total_time * seek_percent / 100
+        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+            for track in self._current_track_list[:self._current_track]:
+                time_millis += track.total_time
+        self._run_command('set', 'time-pos', str(time_millis  / 1000))
+        # (time_millis / 1000) * (seek_percent / 100)
+        self._put_info_with_delay()
 
     @property
     def is_running(self):

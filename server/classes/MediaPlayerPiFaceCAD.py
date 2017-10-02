@@ -1,5 +1,6 @@
 import pifacecad
-from threading import Thread, Barrier
+from threading import Thread, Barrier, BrokenBarrierError
+from math import floor
 
 
 class MediaPlayerPiFaceCAD:
@@ -7,6 +8,7 @@ class MediaPlayerPiFaceCAD:
         self._cad = pifacecad.PiFaceCAD()
         self._media_player = media_player
         self._switch_listener = pifacecad.SwitchEventListener()
+        self._write_count = 0
 
         # https://github.com/piface/pifacedigitalio/issues/27
         self._switch_listener_barrier = Barrier(2)
@@ -39,7 +41,7 @@ class MediaPlayerPiFaceCAD:
     def _switch_listener_wait_for_deactivation(self):
         try:
             self._switch_listener_barrier.wait()
-        except:
+        except BrokenBarrierError:
             pass  # expected reset
         self._switch_listener.deactivate()
 
@@ -67,8 +69,24 @@ class MediaPlayerPiFaceCAD:
             self._cad.lcd.home()
             if media_player_info.cur_track_info.track_number is not None:
                 track_list = self._media_player.current_track_list
+                # track name
+                track_info = track_list[media_player_info.cur_track_info.track_number]
+                self._cad.lcd.write(track_info.artist + ' - ' + track_info.title + '             ')
+                # track count
                 total_tracks = len(track_list)
                 cur_track = media_player_info.cur_track_info.track_number + 1
                 track_str_len = len(str(cur_track)) + len(str(total_tracks)) + 1
                 self._cad.lcd.set_cursor(16 - track_str_len, 1)
                 self._cad.lcd.write(str(cur_track) + '/' + str(total_tracks))
+            if media_player_info.cur_track_info.cur_time is not None:
+                # track time
+                cur_track_time_total_millis = media_player_info.cur_track_info.cur_time
+                cur_track_time_total_seconds = floor(cur_track_time_total_millis / 1000)
+                cur_track_time_minutes = str(floor(cur_track_time_total_seconds / 60))
+                cur_track_time_seconds = str(cur_track_time_total_seconds % 60)
+                self._cad.lcd.set_cursor(0, 1)
+                self._cad.lcd.write(cur_track_time_minutes.zfill(2) + ':' + cur_track_time_seconds.zfill(2))
+        # clear every 100 writes otherwise LCD starts to blink
+        if self._write_count == 100:
+            self._write_count = 0
+            self._cad.lcd.clear()

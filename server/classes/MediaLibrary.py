@@ -1,12 +1,16 @@
 import os
 from mutagen.mp3 import EasyMP3
-
+from enum import Enum
 
 class MediaLibrary:
     """
     Class MediaLibrary represents a finder that searchs for media (MP3) files
     and puts them into a tree of folders/files and artists/albums/songs
     """
+
+    class BranchType(Enum):
+        FOLDERS = 'folders'
+        ARTISTS = 'artists'
 
     def __init__(self):
         """

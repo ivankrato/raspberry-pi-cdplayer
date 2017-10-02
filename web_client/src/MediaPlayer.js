@@ -4,6 +4,8 @@ import Library from './Library';
 import TrackList from './TrackList';
 import Controls from './Controls';
 
+// TODO reset while waiting for CD
+
 export default class MediaPlayer extends Component {
     constructor(props) {
         super(props);
@@ -12,7 +14,7 @@ export default class MediaPlayer extends Component {
             mediaPlayerStatus: 'Loading',
             trackList: [],
         };
-        this.socket = new Socket('http://192.168.0.108:5123'); //TODO change URL to window.location.href
+        this.socket = new Socket('http://192.168.1.24:5123'); //TODO change URL to window.location.href
 
         /*
          * MEDIAPLAYER EVENTS
@@ -146,7 +148,7 @@ class CurrentTrackInfo extends Component {
                 let trackInfo = curTrackInfo.track_number !== undefined ? this.props.trackList[curTrackInfo.track_number] : this.state.trackInfo;
                 if(trackInfo) {
                     this.setState({
-                        trackNumber: curTrackInfo.track_number || this.state.trackNumber,
+                        trackNumber: curTrackInfo.track_number === undefined ? this.state.trackNumber : curTrackInfo.track_number,
                         curTime: curTrackInfo.cur_time,
                         totalTracks: this.props.trackList.length,
                         trackInfo: trackInfo || this.state.trackInfo
@@ -233,7 +235,9 @@ class ProgressBar extends Component {
         let x = e.nativeEvent.offsetX;
         let width = this.refs.seeker.offsetWidth;
         let seek = Math.round(x * 100 / width);
-        this.props.socket.emit('seek', seek);
+        this.props.socket.emit('seek', {
+            'seekPercent': seek
+        });
     }
 
     render() {

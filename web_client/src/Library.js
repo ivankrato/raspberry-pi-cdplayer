@@ -117,7 +117,7 @@ class Folder extends Branch {
                     {this.props.files.map((file, fileIndex) => {
                         let trackInfo = new TrackInfo(file);
                         return (
-                            <LibraryFile key={fileIndex} type="folderFile" trackInfo={trackInfo} folderIndex={this.props.folderIndex} fileIndex={fileIndex} socket={this.props.socket}/>
+                            <LibraryFile key={fileIndex} mediaLibraryType="folders" trackInfo={trackInfo} folderIndex={this.props.folderIndex} fileIndex={fileIndex} socket={this.props.socket}/>
                         )
                     })}
                 </ol>
@@ -154,7 +154,7 @@ class Album extends Branch {
                     {this.props.songs.map((song, songIndex) => {
                         let trackInfo = new TrackInfo(song);
                         return (
-                            <LibraryFile key={songIndex} type="artistFile" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} listArtist={false} socket={this.props.socket}/>
+                            <LibraryFile key={songIndex} mediaLibraryType="artists" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} listArtist={false} socket={this.props.socket}/>
                         )
                     })}
                 </ol>
@@ -172,11 +172,8 @@ class LibraryFile extends Component {
 
     handleClick() {
         this.props.socket.emit('playFile', {
-            'type': this.props.type,
-            'folderIndex': this.props.folderIndex,
-            'artistIndex': this.props.artistIndex,
-            'albumIndex': this.props.albumIndex,
-            'fileIndex': this.props.fileIndex
+            'mediaLibraryType': this.props.mediaLibraryType,
+            'indexes': [this.props.folderIndex, this.props.artistIndex, this.props.albumIndex, this.props.fileIndex]
         });
     }
 

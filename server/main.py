@@ -30,14 +30,14 @@ socket = SocketIO(app, async_mode='threading')
 def index():
     return 'test'
 
-
-@socket.on('connect')
-def ws_connect():
-    emit('status', 'connected')
-    socket.emit('media_player_info', media_player.get_current_info(False, False, True, True).as_dict())
-    sleep(0.2)
-    socket.emit('media_player_info', media_player.get_current_info().as_dict())
-    print('connected')
+for event in ['connect', 'reconnect']:
+    @socket.on(event)
+    def ws_connect():
+        emit('status', 'connected')
+        socket.emit('media_player_info', media_player.get_current_info(False, False, True, True).as_dict())
+        sleep(1)
+        socket.emit('media_player_info', media_player.get_current_info().as_dict())
+        print('connected')
 
 
 @socket.on('disconnect')
@@ -48,17 +48,16 @@ def ws_disconnect():
 @socket.on('getCurTrackInfo')
 def ws_get_current_track_info():
     socket.emit('media_player_info', media_player.get_current_info(True, True, True, True).as_dict())
-    print('getCurTrackInfo')
 
 
 @socket.on('playFile')
 def ws_play_file(data):
-    print(data)
+    media_player.play_file(data)
 
 
 @socket.on('playTrack')
 def ws_play_track(data):
-    print(data)
+    media_player.play_track(data['trackNumber'])
 
 
 @socket.on('prevBranch')
@@ -104,7 +103,7 @@ def ws_eject():
 
 @socket.on('seek')
 def ws_seek(data):
-    print('seek: ' + str(data))
+    media_player.seek(data['seekPercent'])
 
 
 def play_cd(media_player):
@@ -122,7 +121,7 @@ def play_cd(media_player):
             sleep(0.2)
         cad.destroy()
         # FIXME this doesn't get emitted
-        socket.emit('media_player_info', media_player.get_current_info(True, False, False, False))
+        socket.emit('media_player_info', media_player.get_current_info(True, False, False, False).as_dict())
 
 
 # Web server thread starting point
