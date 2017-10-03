@@ -169,6 +169,12 @@ class MediaPlayer:
                 self._run_command('set', 'playlist-pos', str(last_track))
         self._put_info_with_delay()
 
+    def next_branch(self):
+        if self._current_media_library_branch_type_index[0] == MediaLibrary.BranchType.FOLDERS:
+            folder_index = self._current_media_library_branch_type_index[1]
+            folder_index = (folder_index + 1) % len(self._media_library.media_folders)
+            self.play_file(MediaLibrary.BranchType.FOLDERS, (folder_index, None, None, 0))
+
     def play_track(self, track_number):
         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
             self._run_command('set', 'chapter', str(track_number))
@@ -176,23 +182,22 @@ class MediaPlayer:
             self._run_command('set', 'playlist-pos', str(track_number))
         self._put_info_with_delay()
 
-    def play_file(self, data):
+    def play_file(self, media_library_type, indexes):
         if self._current_disk_type == MediaPlayer.DiskType.MP3_CD and \
-                        data['mediaLibraryType'] is not None and \
-                        data['indexes'] is not None:
+                        media_library_type is not None and \
+                        indexes is not None:
             files = None
             file_index = 0
-            print(data)
-            if data['mediaLibraryType'] == 'folders':
+            if media_library_type == 'folders':
                 self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS,
-                                                                 data['indexes'][0])
-                files = self._media_library.media_folders[data['indexes'][0]].media_files
-            elif data['mediaLibraryType'] == 'artists':
+                                                                 indexes[0])
+                files = self._media_library.media_folders[indexes[0]].media_files
+            elif media_library_type == 'artists':
                 self._current_media_library_branch_type_index = (MediaLibrary.BranchType.ARTISTS,
-                                                                 data['indexes'][1],
-                                                                 data['indexes'][2])
-                files = self._media_library.artists[data['indexes'][1]].albums[data['indexes'][2]].songs
-            file_index = data['indexes'][3]
+                                                                 indexes[1],
+                                                                 indexes[2])
+                files = self._media_library.artists[indexes[1]].albums[indexes[2]].songs
+            file_index = indexes[3]
             if files is not None:
                 ordered_files = files[file_index:] + files[0:file_index]
                 self._current_track_list = list(map(
@@ -205,12 +210,12 @@ class MediaPlayer:
                     self._run_command('loadfile', file.full_path, 'append')
         self._put_info_with_delay(True)
 
-    def pause(self):
-        self._run_command('set', 'pause', 'yes')
-        self._info_events.put(self.get_current_info(cur_track_info=False))
-
-    def play(self):
-        self._run_command('set', 'pause', 'no')
+    def play_pause(self):
+        pause = self._run_command('get_property', 'pause')
+        if pause:
+            self._run_command('set', 'pause', 'no')
+        else:
+            self._run_command('set', 'pause', 'yes')
         self._info_events.put(self.get_current_info())
 
     def stop(self):
@@ -219,12 +224,16 @@ class MediaPlayer:
         except:
             print("Nothing is playing.")
         subprocess.Popen(['eject', 'cdrom'])
+        self.eject()
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None
         self._current_media_library_branch_type_index = None
         self._media_library = None
         self._info_events.put(self.get_current_info(True, True, True, True))
+
+    def eject(self):
+        subprocess.Popen(['eject', 'cdrom'])
 
     def seek(self, seek_percent):
         time_millis = self._current_track_list[self._current_track].total_time * seek_percent / 100

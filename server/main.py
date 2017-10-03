@@ -52,7 +52,7 @@ def ws_get_current_track_info():
 
 @socket.on('playFile')
 def ws_play_file(data):
-    media_player.play_file(data)
+    media_player.play_file(data['mediaLibraryType'], data['indexes'])
 
 
 @socket.on('playTrack')
@@ -85,20 +85,19 @@ def ws_next_track():
 
 @socket.on('play')
 def ws_play():
-    media_player.play()
+    media_player.play_pause()
     print('play')
 
 
 @socket.on('pause')
 def ws_pause():
-    media_player.pause()
+    media_player.play_pause()
     print('pause')
 
 
 @socket.on('eject')
 def ws_eject():
     media_player.stop()
-    print('eject')
 
 
 @socket.on('seek')
@@ -108,8 +107,8 @@ def ws_seek(data):
 
 def play_cd(media_player):
     media_player.try_play_cd()  # try to play CD after running the program
+    cad = None
     if media_player.is_running:
-        cad = None
         if has_pi_face_cad:
             cad = MediaPlayerPiFaceCAD(media_player)
         while media_player.is_running:
@@ -139,8 +138,10 @@ web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
 web_server_thread.start()
 
-# Check for CDs
 media_player = MediaPlayer()
+
+# Eject button
+eject_listener = MediaPlayerPiFaceCAD.create_eject_listener(media_player)
 
 play_cd(media_player)
 

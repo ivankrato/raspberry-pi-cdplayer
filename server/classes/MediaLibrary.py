@@ -11,6 +11,7 @@ class MediaLibrary:
     class BranchType(Enum):
         FOLDERS = 'folders'
         ARTISTS = 'artists'
+        ALBUMS = 'albums'
 
     def __init__(self):
         """
