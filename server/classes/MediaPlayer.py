@@ -170,10 +170,29 @@ class MediaPlayer:
         self._put_info_with_delay()
 
     def next_branch(self):
-        if self._current_media_library_branch_type_index[0] == MediaLibrary.BranchType.FOLDERS:
-            folder_index = self._current_media_library_branch_type_index[1]
+        type_index = self._current_media_library_branch_type_index
+        if type_index[0] == MediaLibrary.BranchType.FOLDERS:
+            folder_index = type_index[1]
             folder_index = (folder_index + 1) % len(self._media_library.media_folders)
             self.play_file(MediaLibrary.BranchType.FOLDERS, (folder_index, None, None, 0))
+        elif type_index[0] == MediaLibrary.BranchType.ALBUMS:
+            album_index = type_index[2] + 1
+            artist_index = type_index[1]
+            if album_index >= len(self._media_library.artists[artist_index].albums):
+                album_index = 0
+                artist_index = (artist_index + 1) % len(self._media_library.artists)
+            self.play_file(MediaLibrary.BranchType.ALBUMS, (None, artist_index, album_index, 0))
+        elif type_index[0] == MediaLibrary.BranchType.ARTISTS:
+            # TODO
+            pass
+
+    def prev_branch(self):
+        type_index = self._current_media_library_branch_type_index
+        if type_index[0] == MediaLibrary.BranchType.FOLDERS:
+            folder_index = type_index[1] - 1
+            folder_index = folder_index if folder_index != -1 else len(self._media_library.media_folders) - 1
+            self.play_file(MediaLibrary.BranchType.FOLDERS, (folder_index, None, None, 0))
+        # TODO
 
     def play_track(self, track_number):
         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
@@ -187,16 +206,18 @@ class MediaPlayer:
                         media_library_type is not None and \
                         indexes is not None:
             files = None
-            file_index = 0
-            if media_library_type == 'folders':
+            if media_library_type == MediaLibrary.BranchType.FOLDERS:
                 self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS,
                                                                  indexes[0])
                 files = self._media_library.media_folders[indexes[0]].media_files
-            elif media_library_type == 'artists':
-                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.ARTISTS,
+            elif media_library_type == MediaLibrary.BranchType.ALBUMS:
+                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.ALBUMS,
                                                                  indexes[1],
                                                                  indexes[2])
                 files = self._media_library.artists[indexes[1]].albums[indexes[2]].songs
+            elif media_library_type == MediaLibrary.BranchType.ARTISTS:
+                # TODO
+                pass
             file_index = indexes[3]
             if files is not None:
                 ordered_files = files[file_index:] + files[0:file_index]

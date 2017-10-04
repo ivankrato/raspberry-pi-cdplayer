@@ -154,7 +154,7 @@ class Album extends Branch {
                     {this.props.songs.map((song, songIndex) => {
                         let trackInfo = new TrackInfo(song);
                         return (
-                            <LibraryFile key={songIndex} mediaLibraryType="artists" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} listArtist={false} socket={this.props.socket}/>
+                            <LibraryFile key={songIndex} mediaLibraryType="albums" trackInfo={trackInfo} artistIndex={this.props.artistIndex} albumIndex={this.props.albumIndex} fileIndex={songIndex} listArtist={false} socket={this.props.socket}/>
                         )
                     })}
                 </ol>

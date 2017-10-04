@@ -52,7 +52,14 @@ def ws_get_current_track_info():
 
 @socket.on('playFile')
 def ws_play_file(data):
-    media_player.play_file(data['mediaLibraryType'], data['indexes'])
+    media_library_type = None
+    if data['mediaLibraryType'] == 'artists':
+        media_library_type = MediaLibrary.BranchType.ARTISTS
+    if data['mediaLibraryType'] == 'albums':
+        media_library_type = MediaLibrary.BranchType.ALBUMS
+    if data['mediaLibraryType'] == 'folders':
+        media_library_type = MediaLibrary.BranchType.FOLDERS
+    media_player.play_file(media_library_type, data['indexes'])
 
 
 @socket.on('playTrack')
@@ -62,13 +69,12 @@ def ws_play_track(data):
 
 @socket.on('prevBranch')
 def ws_prev_branch():
-    print('prevBranch')
+    media_player.prev_branch()
 
 
 @socket.on('nextBranch')
 def ws_next_branch():
-    print('nextBranch')
-    pass
+    media_player.next_branch()
 
 
 @socket.on('prevTrack')
@@ -81,7 +87,6 @@ def ws_prev_track():
 def ws_next_track():
     media_player.next_track()
     print('nextTrack')
-
 
 @socket.on('play')
 def ws_play():

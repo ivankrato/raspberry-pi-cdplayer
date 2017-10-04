@@ -21,13 +21,13 @@ class MediaPlayerPiFaceCAD:
         self._listeners_wait_for_deactivation_thread.start()
 
         self._switch_listener.register(0, pifacecad.IODIR_ON,
-                                       lambda event: self._clear_and_call(media_player.prev_track))
+                                       lambda event: self._clear_and_call(media_player.prev_branch))
         self._switch_listener.register(1, pifacecad.IODIR_ON,
                                        lambda event: media_player.play_pause())
         self._switch_listener.register(2, pifacecad.IODIR_ON,
                                        lambda event: media_player.play_pause())
         self._switch_listener.register(3, pifacecad.IODIR_ON,
-                                       lambda event: self._clear_and_call(media_player.next_track))
+                                       lambda event: self._clear_and_call(media_player.next_branch))
         self._switch_listener.register(4, pifacecad.IODIR_ON,
                                        lambda event: self._stop(media_player))
         self._switch_listener.register(5, pifacecad.IODIR_ON,
