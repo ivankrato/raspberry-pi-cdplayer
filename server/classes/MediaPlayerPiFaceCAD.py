@@ -8,16 +8,17 @@ class MediaPlayerPiFaceCAD:
         self._cad = pifacecad.PiFaceCAD()
         self._media_player = media_player
         self._switch_listener = pifacecad.SwitchEventListener()
+        self._ir_listener = pifacecad.IREventListener('raspberry-pi-cdplayer')
         self._write_count = 0
         self._temp_text = None
         self._temp_text_Timer = None
 
         # https://github.com/piface/pifacedigitalio/issues/27
-        self._switch_listener_barrier = Barrier(2)
-        self._switch_listener_wait_for_deactivation_thread = Thread(target=self._switch_listener_wait_for_deactivation,
-                                                                    args=[])
-        self._switch_listener_wait_for_deactivation_thread.setDaemon(True)
-        self._switch_listener_wait_for_deactivation_thread.start()
+        self._listeners_barrier = Barrier(2)
+        self._listeners_wait_for_deactivation_thread = Thread(target=self._switch_listener_wait_for_deactivation,
+                                                              args=[])
+        self._listeners_wait_for_deactivation_thread.setDaemon(True)
+        self._listeners_wait_for_deactivation_thread.start()
 
         self._switch_listener.register(0, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.prev_track))
@@ -36,6 +37,8 @@ class MediaPlayerPiFaceCAD:
         self._switch_listener.register(7, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.next_track))
         self._switch_listener.activate()
+        self._ir_listener.register('play_pause', lambda event: print(event.ir_code))
+        self._ir_listener.activate()
         self._cad.lcd.blink_off()
         self._cad.lcd.cursor_off()
         self._cad.lcd.clear()
@@ -44,10 +47,11 @@ class MediaPlayerPiFaceCAD:
 
     def _switch_listener_wait_for_deactivation(self):
         try:
-            self._switch_listener_barrier.wait()
+            self._listeners_barrier.wait()
         except BrokenBarrierError:
             pass  # expected reset
         self._switch_listener.deactivate()
+        self._ir_listener.deactivate()
 
     def _clear_and_call(self, func):
         self._cad.lcd.clear()
@@ -60,7 +64,7 @@ class MediaPlayerPiFaceCAD:
     def destroy(self):
         self._cad.lcd.clear()
         self._cad.lcd.backlight_off()
-        self._switch_listener_barrier.reset()  # should never wait
+        self._listeners_barrier.reset()  # should never wait
 
     def _reset_temp_text(self):
         self._temp_text = None

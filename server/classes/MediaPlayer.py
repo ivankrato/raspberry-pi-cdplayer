@@ -240,7 +240,7 @@ class MediaPlayer:
         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
             for track in self._current_track_list[:self._current_track]:
                 time_millis += track.total_time
-        self._run_command('set', 'time-pos', str(time_millis  / 1000))
+        self._run_command('set', 'time-pos', str(time_millis / 1000))
         # (time_millis / 1000) * (seek_percent / 100)
         self._put_info_with_delay()
 

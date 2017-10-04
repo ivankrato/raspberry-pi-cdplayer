@@ -2,6 +2,7 @@ import os
 from mutagen.mp3 import EasyMP3
 from enum import Enum
 
+
 class MediaLibrary:
     """
     Class MediaLibrary represents a finder that searchs for media (MP3) files
