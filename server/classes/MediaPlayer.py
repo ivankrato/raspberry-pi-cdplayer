@@ -14,6 +14,11 @@ class MediaPlayer:
         AUDIO_CD = 'audio_cd'
         MP3_CD = 'mp3_cd'
 
+    class BranchType(Enum):
+        FOLDERS = 'folders'
+        ARTISTS = 'artists'
+        ALBUMS = 'albums'
+
     MPV_COMMAND = ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0",
                    "--cache=1024", "--loop",
                    "--input-ipc-server=/tmp/mpvsocket"]
@@ -84,11 +89,16 @@ class MediaPlayer:
                 self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
                                              [self._media_library.media_folders[0].path],
                                              bufsize=1)
-                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS, 0)
-            sleep(1)
-            self._info_events.put(self.get_current_info(True, True, True, True))
+                self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS, 0)
+            info = self.get_current_info(True, False, True, True)
+            # fill cur_track_info with zeros, because it may not be initialized yet (mpv loading)
+            info.cur_track_info = CurrentTrackInfo()
+            info.cur_track_info.cur_time = 0
+            info.cur_track_info.track_number = 0
+            self._info_events.put(info)
 
     def _check_for_cd(self):
+        self._current_disk_type = None
         if not self.is_running:
             self._cd.load_cd_info()
             if CD.is_cd_inserted():
@@ -109,8 +119,6 @@ class MediaPlayer:
                                                          media_info.title),
                             self._media_library.media_folders[0].media_files))
                         print(self._media_library.as_dict())
-                    else:
-                        return None
         return self._current_disk_type
 
     def _run_command(self, *command):
@@ -170,29 +178,45 @@ class MediaPlayer:
         self._put_info_with_delay()
 
     def next_branch(self):
-        type_index = self._current_media_library_branch_type_index
-        if type_index[0] == MediaLibrary.BranchType.FOLDERS:
-            folder_index = type_index[1]
-            folder_index = (folder_index + 1) % len(self._media_library.media_folders)
-            self.play_file(MediaLibrary.BranchType.FOLDERS, (folder_index, None, None, 0))
-        elif type_index[0] == MediaLibrary.BranchType.ALBUMS:
-            album_index = type_index[2] + 1
-            artist_index = type_index[1]
-            if album_index >= len(self._media_library.artists[artist_index].albums):
-                album_index = 0
-                artist_index = (artist_index + 1) % len(self._media_library.artists)
-            self.play_file(MediaLibrary.BranchType.ALBUMS, (None, artist_index, album_index, 0))
-        elif type_index[0] == MediaLibrary.BranchType.ARTISTS:
-            # TODO
-            pass
+        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+            self.next_track()
+        elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+            type_index = self._current_media_library_branch_type_index
+            folder_index = None
+            artist_index = None
+            album_index = None
+            if type_index[0] == MediaPlayer.BranchType.FOLDERS:
+                folder_index = (type_index[1] + 1) % len(self._media_library.media_folders)
+            elif type_index[0] == MediaPlayer.BranchType.ALBUMS:
+                artist_index = (type_index[1] + 1) % len(self._media_library.artists)
+                album_index = type_index[2] + 1
+                if album_index >= len(self._media_library.artists[artist_index].albums):
+                    album_index = 0
+            elif type_index[0] == MediaPlayer.BranchType.ARTISTS:
+                artist_index = (type_index[1] + 1) % len(self._media_library.artists)
+            self.play_file(type_index[0], (folder_index, artist_index, album_index, 0))
 
     def prev_branch(self):
-        type_index = self._current_media_library_branch_type_index
-        if type_index[0] == MediaLibrary.BranchType.FOLDERS:
-            folder_index = type_index[1] - 1
-            folder_index = folder_index if folder_index != -1 else len(self._media_library.media_folders) - 1
-            self.play_file(MediaLibrary.BranchType.FOLDERS, (folder_index, None, None, 0))
-        # TODO
+        if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
+            self.prev_track()
+        elif self._current_disk_type == MediaPlayer.DiskType.MP3_CD:
+            type_index = self._current_media_library_branch_type_index
+            folder_index = None
+            artist_index = None
+            album_index = None
+            if type_index[0] == MediaPlayer.BranchType.FOLDERS:
+                folder_index = type_index[1] - 1
+                folder_index = folder_index if folder_index != -1 else len(self._media_library.media_folders) - 1
+            elif type_index[0] == MediaPlayer.BranchType.ALBUMS:
+                album_index = type_index[2] - 1
+                if album_index == -1:
+                    artist_index = type_index[1] - 1
+                    artist_index = artist_index if artist_index != -1 else len(self._media_library.artist) - 1
+                    album_index = len(self._media_library.artists[artist_index].albums) - 1
+            elif type_index[0] == MediaPlayer.BranchType.ARTISTS:
+                artist_index = type_index[1] - 1
+                artist_index = artist_index if artist_index != -1 else len(self._media_library.artists) - 1
+            self.play_file(type_index[0], (folder_index, artist_index, album_index, 0))
 
     def play_track(self, track_number):
         if self._current_disk_type == MediaPlayer.DiskType.AUDIO_CD:
@@ -202,22 +226,24 @@ class MediaPlayer:
         self._put_info_with_delay()
 
     def play_file(self, media_library_type, indexes):
+        # indexes = (folder_index, artist_index, album_index, file_index)
         if self._current_disk_type == MediaPlayer.DiskType.MP3_CD and \
                         media_library_type is not None and \
                         indexes is not None:
             files = None
-            if media_library_type == MediaLibrary.BranchType.FOLDERS:
-                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.FOLDERS,
+            if media_library_type == MediaPlayer.BranchType.FOLDERS:
+                self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS,
                                                                  indexes[0])
                 files = self._media_library.media_folders[indexes[0]].media_files
-            elif media_library_type == MediaLibrary.BranchType.ALBUMS:
-                self._current_media_library_branch_type_index = (MediaLibrary.BranchType.ALBUMS,
+            elif media_library_type == MediaPlayer.BranchType.ALBUMS:
+                self._current_media_library_branch_type_index = (MediaPlayer.BranchType.ALBUMS,
                                                                  indexes[1],
                                                                  indexes[2])
                 files = self._media_library.artists[indexes[1]].albums[indexes[2]].songs
-            elif media_library_type == MediaLibrary.BranchType.ARTISTS:
-                # TODO
-                pass
+            elif media_library_type == MediaPlayer.BranchType.ARTISTS:
+                self._current_media_library_branch_type_index = (MediaPlayer.BranchType.ARTISTS,
+                                                                 indexes[1])
+                files = self._media_library.artists[indexes[1]].songs
             file_index = indexes[3]
             if files is not None:
                 ordered_files = files[file_index:] + files[0:file_index]
@@ -244,14 +270,12 @@ class MediaPlayer:
             self._mpv.kill()
         except:
             print("Nothing is playing.")
-        subprocess.Popen(['eject', 'cdrom'])
         self.eject()
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None
         self._current_media_library_branch_type_index = None
         self._media_library = None
-        self._info_events.put(self.get_current_info(True, True, True, True))
 
     def eject(self):
         subprocess.Popen(['eject', 'cdrom'])

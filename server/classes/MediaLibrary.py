@@ -9,11 +9,6 @@ class MediaLibrary:
     and puts them into a tree of folders/files and artists/albums/songs
     """
 
-    class BranchType(Enum):
-        FOLDERS = 'folders'
-        ARTISTS = 'artists'
-        ALBUMS = 'albums'
-
     def __init__(self):
         """
         Constructor, initializes the MediaLibrary class with a root folder
@@ -141,7 +136,7 @@ class MediaLibrary:
 
     class MediaFolder(MediaBranch):
         """
-        Class Artist inherits MediaBranch represents an artist with some albums
+        Class MediaFolder inherits MediaBranch represents an folder with some media files
         """
 
         def __init__(self, path):
@@ -197,6 +192,13 @@ class MediaLibrary:
             :return: array of Album instances
             """
             return self._media_branches
+
+        @property
+        def songs(self):
+            songs = []
+            for album in self.albums:
+                songs += album.songs
+            return songs
 
     class Album(MediaBranch):
         """

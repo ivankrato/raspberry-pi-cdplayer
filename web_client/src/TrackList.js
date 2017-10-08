@@ -10,6 +10,12 @@ export default class TrackList extends Component {
         };
 
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
+            if (data.status === 'waitingForCD') {
+                this.setState({
+                    trackList: []
+                });
+                return;
+            }
             if (data.track_list) {
                 this.setState({
                     trackList: data.track_list.map((track) => {
@@ -19,31 +25,49 @@ export default class TrackList extends Component {
             }
             if (data.cur_track_info) {
                 this.setState({
-                    curTrackNumber: data.cur_track_info.track_number || this.state.curTrackNumber
-                })
+                    curTrackNumber: data.cur_track_info.track_number === undefined ? this.state.curTrackNumber : data.cur_track_info.track_number
+                });
             }
         });
     }
 
-    componentDidUpdate() {
-        function height() {
-            let trackList = this.refs.trackList;
+    updateHeight() {
+        let trackList = this.refs.trackList;
+        if (window.innerWidth >= 1024) {
             trackList.style.height = window.innerHeight - trackList.offsetTop + 'px';
+        } else {
+            let height = window.innerHeight;
+            for (let node of trackList.parentNode.childNodes) {
+                if (node === trackList) continue;
+                height -= node.offsetHeight;
+            }
+            trackList.style.height = height + 'px';
         }
-        height.bind(this)();
-        window.addEventListener('resize', height.bind(this));
+    }
+
+    componentDidUpdate() {
+        this.updateHeight();
+    }
+
+    componentDidMount() {
+        window.addEventListener('resize', this.updateHeight.bind(this));
     }
 
     render() {
         return (
-            <div className="track-list" ref="trackList">
-                <ol>
-                    {this.state.trackList.map((trackInfo, trackNumber) => {
-                        return (
-                            <Track key={trackNumber} trackInfo={trackInfo} trackNumber={trackNumber} socket={this.props.socket} active={trackNumber === this.state.curTrackNumber}/>
-                        )
-                    })}
-                </ol>
+            <div className="resp-track-list-container">
+                <div className="track-list-container col-50">
+                    <h2>Track list</h2>
+                    <div className="track-list" ref="trackList">
+                        <ol>
+                            {this.state.trackList.map((trackInfo, trackNumber) => {
+                                return (
+                                    <Track key={trackNumber} trackInfo={trackInfo} trackNumber={trackNumber} socket={this.props.socket} active={trackNumber === this.state.curTrackNumber}/>
+                                )
+                            })}
+                        </ol>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -65,7 +89,7 @@ class Track extends Component {
     render() {
         return (
             <li onClick={this.handleClick} className={(this.props.active ? 'active ' : '') + 'track'}>
-                {this.props.trackInfo.getTrackTitleInfo()} ({this.props.trackInfo.getTotalTimeString()})
+                <span>{this.props.trackInfo.getTrackTitleInfo()} ({this.props.trackInfo.getTotalTimeString()})</span>
             </li>
         )
     }

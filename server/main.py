@@ -30,11 +30,12 @@ socket = SocketIO(app, async_mode='threading')
 def index():
     return 'test'
 
+
 for event in ['connect', 'reconnect']:
     @socket.on(event)
     def ws_connect():
         emit('status', 'connected')
-        socket.emit('media_player_info', media_player.get_current_info(False, False, True, True).as_dict())
+        socket.emit('media_player_info', media_player.get_current_info(True, True, True, True).as_dict())
         sleep(1)
         socket.emit('media_player_info', media_player.get_current_info().as_dict())
         print('connected')
@@ -54,12 +55,27 @@ def ws_get_current_track_info():
 def ws_play_file(data):
     media_library_type = None
     if data['mediaLibraryType'] == 'artists':
-        media_library_type = MediaLibrary.BranchType.ARTISTS
+        media_library_type = MediaPlayer.BranchType.ARTISTS
     if data['mediaLibraryType'] == 'albums':
-        media_library_type = MediaLibrary.BranchType.ALBUMS
+        media_library_type = MediaPlayer.BranchType.ALBUMS
     if data['mediaLibraryType'] == 'folders':
-        media_library_type = MediaLibrary.BranchType.FOLDERS
+        media_library_type = MediaPlayer.BranchType.FOLDERS
     media_player.play_file(media_library_type, data['indexes'])
+
+
+@socket.on('playFolder')
+def ws_play_folder(data):
+    media_player.play_file(MediaPlayer.BranchType.FOLDERS, (data['folderIndex'], None, None, 0))
+
+
+@socket.on('playArtist')
+def ws_play_artist(data):
+    media_player.play_file(MediaPlayer.BranchType.ARTISTS, (None, data['artistIndex'], None, 0))
+
+
+@socket.on('playAlbum')
+def ws_play_album(data):
+    media_player.play_file(MediaPlayer.BranchType.ALBUMS, (None, data['artistIndex'], data['albumIndex'], 0))
 
 
 @socket.on('playTrack')
@@ -87,6 +103,7 @@ def ws_prev_track():
 def ws_next_track():
     media_player.next_track()
     print('nextTrack')
+
 
 @socket.on('play')
 def ws_play():
@@ -120,12 +137,12 @@ def play_cd(media_player):
             for info in iter(media_player.poll_info, None):
                 print(info.as_dict())
                 socket.emit('media_player_info', info.as_dict())
-            if cad is not None:
+            if cad is not None and media_player.is_running:
+                # TODO make separate thread in MediaPlayerPiFaceCAD with sleep(1)
                 cad.write_info(media_player.get_current_info())
             sleep(0.2)
         cad.destroy()
-        # FIXME this doesn't get emitted
-        socket.emit('media_player_info', media_player.get_current_info(True, False, False, False).as_dict())
+        socket.emit('media_player_info', media_player.get_current_info().as_dict())
 
 
 # Web server thread starting point

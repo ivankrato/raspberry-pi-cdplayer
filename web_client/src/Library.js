@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {TrackInfo} from './Helpers';
+import FontAwesome from 'react-fontawesome';
 
 export default class Library extends Component {
     constructor(props) {
@@ -10,6 +11,12 @@ export default class Library extends Component {
         };
 
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
+                if (data.status === 'waitingForCD') {
+                    this.setState({
+                        library: {}
+                    });
+                    return;
+                }
                 if (data.library) {
                     this.setState({
                         library: data.library
@@ -18,29 +25,35 @@ export default class Library extends Component {
             }
         );
 
-        this.handleArtistsClick = this.handleArtistsClick.bind(this);
-        this.handleFoldersClick = this.handleFoldersClick.bind(this);
+        this.handleBranchClick = this.handleBranchClick.bind(this);
     }
 
-    handleArtistsClick() {
+    handleBranchClick(branch) {
         this.setState({
-            currentBranch: 'artists'
+            currentBranch: branch
         });
     }
 
-    handleFoldersClick() {
-        this.setState({
-            currentBranch: 'folders'
-        });
+    updateHeight() {
+        let library = this.refs.library;
+        if (window.innerWidth >= 1024) {
+            library.style.height = window.innerHeight - library.offsetTop + 'px';
+        } else {
+            let height = window.innerHeight;
+            for(let node of library.parentNode.childNodes) {
+                if(node === library) continue;
+                height -= node.offsetHeight ;
+            }
+            library.style.height = height + 'px';
+        }
     }
 
     componentDidUpdate() {
-        function height() {
-            let library = this.refs.library;
-            library.style.height = window.innerHeight - library.offsetTop + 'px';
-        }
-        height.bind(this)();
-        window.addEventListener('resize', height.bind(this));
+        this.updateHeight();
+    }
+
+    componentDidMount() {
+        window.addEventListener('resize', this.updateHeight.bind(this));
     }
 
     render() {
@@ -82,10 +95,16 @@ export default class Library extends Component {
         }
 
         return (
-            <div className="library" ref="library">
-                <button onClick={this.handleArtistsClick}>Artists</button>
-                <button onClick={this.handleFoldersClick}>Folders</button>
-                {list}
+            <div className="resp-library-container">
+                <div className="library-container col-50">
+                    <ul className="branches">
+                        <li onClick={() => this.handleBranchClick('artists')} className={this.state.currentBranch === 'artists' ? 'active' : ''}>Artists</li>
+                        <li onClick={() => this.handleBranchClick('folders')} className={this.state.currentBranch === 'folders' ? 'active' : ''}>Folders</li>
+                    </ul>
+                    <div className="library" ref="library">
+                        {list}
+                    </div>
+                </div>
             </div>
         )
     }
@@ -98,6 +117,7 @@ class Branch extends Component {
             collapsed: true
         };
         this.handleToggleClick = this.handleToggleClick.bind(this);
+        this.handlePlayClick = this.handlePlayClick ? this.handlePlayClick.bind(this) : undefined;
     }
 
     handleToggleClick() {
@@ -108,11 +128,17 @@ class Branch extends Component {
 }
 
 class Folder extends Branch {
+    handlePlayClick() {
+        this.props.socket.emit('playFolder', {
+            folderIndex: this.props.folderIndex
+        })
+    }
+
     render() {
         return (
             <div className={this.state.collapsed ? 'folder branch' : 'folder branch opened'}>
-                {this.props.name}
-                <button onClick={this.handleToggleClick}>Toggle</button>
+                <span onClick={this.handleToggleClick}>{this.props.name}</span>
+                <button className="play-button" onClick={this.handlePlayClick}><FontAwesome name="play" fixedWidth={true}/></button>
                 <ol>
                     {this.props.files.map((file, fileIndex) => {
                         let trackInfo = new TrackInfo(file);
@@ -127,11 +153,17 @@ class Folder extends Branch {
 }
 
 class Artist extends Branch {
+    handlePlayClick() {
+        this.props.socket.emit('playArtist', {
+            artistIndex: this.props.artistIndex,
+        })
+    }
+
     render() {
         return (
             <div className={this.state.collapsed ? 'artist branch' : 'artist branch opened'}>
-                {this.props.name}
-                <button onClick={this.handleToggleClick}>Toggle</button>
+                <span onClick={this.handleToggleClick}>{this.props.name}</span>
+                <button className="play-button" onClick={this.handlePlayClick}><FontAwesome name="play" fixedWidth={true}/></button>
                 <ul>
                     {this.props.albums.map((album, albumIndex) =>
                         <li key={albumIndex}>
@@ -145,11 +177,18 @@ class Artist extends Branch {
 }
 
 class Album extends Branch {
+    handlePlayClick() {
+        this.props.socket.emit('playAlbum', {
+            artistIndex: this.props.artistIndex,
+            albumIndex: this.props.albumIndex
+        })
+    }
+
     render() {
         return (
             <div className={this.state.collapsed ? 'album branch' : 'album branch opened'}>
-                {this.props.name}
-                <button onClick={this.handleToggleClick}>Toggle</button>
+                <span onClick={this.handleToggleClick}>{this.props.name}</span>
+                <button className="play-button" onClick={this.handlePlayClick}><FontAwesome name="play" fixedWidth={true}/></button>
                 <ol>
                     {this.props.songs.map((song, songIndex) => {
                         let trackInfo = new TrackInfo(song);
@@ -180,7 +219,7 @@ class LibraryFile extends Component {
     render() {
         return (
             <li onClick={this.handleClick} className="song">
-                {this.props.trackInfo.getTrackTitleInfo(this.props.listArtist)} ({this.props.trackInfo.getTotalTimeString()})
+                <span>{this.props.trackInfo.getTrackTitleInfo(this.props.listArtist)} ({this.props.trackInfo.getTotalTimeString()})</span>
             </li>
         )
     }

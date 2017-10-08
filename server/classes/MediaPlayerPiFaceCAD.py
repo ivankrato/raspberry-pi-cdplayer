@@ -9,7 +9,6 @@ class MediaPlayerPiFaceCAD:
         self._media_player = media_player
         self._switch_listener = pifacecad.SwitchEventListener()
         self._ir_listener = pifacecad.IREventListener('raspberry-pi-cdplayer')
-        self._write_count = 0
         self._temp_text = None
         self._temp_text_Timer = None
 
@@ -28,8 +27,6 @@ class MediaPlayerPiFaceCAD:
                                        lambda event: media_player.play_pause())
         self._switch_listener.register(3, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.next_branch))
-        self._switch_listener.register(4, pifacecad.IODIR_ON,
-                                       lambda event: self._stop(media_player))
         self._switch_listener.register(5, pifacecad.IODIR_ON,
                                        lambda event: media_player.play_pause())
         self._switch_listener.register(6, pifacecad.IODIR_ON,
@@ -57,10 +54,6 @@ class MediaPlayerPiFaceCAD:
         self._cad.lcd.clear()
         func()
 
-    def _stop(self, media_player):
-        media_player.stop()
-        self.destroy()
-
     def destroy(self):
         self._cad.lcd.clear()
         self._cad.lcd.backlight_off()
@@ -77,10 +70,6 @@ class MediaPlayerPiFaceCAD:
         self._temp_text_Timer.start()
 
     def write_info(self, media_player_info):
-        # clear every 100 writes otherwise LCD starts to blink
-        if self._write_count == 20:
-            self._write_count = 0
-            self._cad.lcd.clear()
         first_row_text = ''
         if media_player_info.status == 'paused':
             first_row_text = 'Paused'
@@ -109,15 +98,14 @@ class MediaPlayerPiFaceCAD:
                 self._cad.lcd.write(cur_track_time_minutes.zfill(2) + ':' + cur_track_time_seconds.zfill(2))
         self._cad.lcd.home()
         if self._temp_text is not None:
-            self._cad.lcd.write(self._temp_text + '                ')
+            self._cad.lcd.write((self._temp_text + '                ')[:16])
         else:
-            self._cad.lcd.write(first_row_text + '                ')
-        self._write_count += 1
+            self._cad.lcd.write((first_row_text + '                ')[:16])
 
     @staticmethod
     def create_eject_listener(media_player):
         eject_listener = pifacecad.SwitchEventListener()
         eject_listener.register(4, pifacecad.IODIR_ON,
-                                lambda event: media_player.eject())
+                                lambda event: media_player.stop())
         eject_listener.activate()
         return eject_listener

@@ -14,7 +14,7 @@ export default class MediaPlayer extends Component {
             mediaPlayerStatus: 'Loading',
             trackList: [],
         };
-        this.socket = new Socket('http://192.168.1.24:5123'); //TODO change URL to window.location.href
+        this.socket = new Socket('http://192.168.0.108:5123'); //TODO change URL to window.location.href
 
         /*
          * MEDIAPLAYER EVENTS
@@ -31,25 +31,39 @@ export default class MediaPlayer extends Component {
                 }
             }
         );
+
+        this.handleLibraryRespCheckboxChange = this.handleLibraryRespCheckboxChange.bind(this);
+        this.handleTrackListRespCheckboxChange = this.handleTrackListRespCheckboxChange.bind(this);
     }
 
+
+
+    handleLibraryRespCheckboxChange() {
+        this.refs.trackListRespCheckbox.checked = false;
+    }
+
+    handleTrackListRespCheckboxChange() {
+        this.refs.libraryRespCheckbox.checked = false;
+    }
     render() {
         return (
             <div className="media-player-container">
                 <div className="media-player">
-                    <MediaPlayerStatus socket={this.socket}/>
+                    <div className="clearfix">
+                        <MediaPlayerStatus socket={this.socket}/>
+                        <ConnectionStatus socket={this.socket}/>
+                    </div>
                     <CurrentTrackInfo socket={this.socket} trackList={this.state.trackList}/>
                     <ProgressBar socket={this.socket} trackList={this.state.trackList}/>
-                    <Controls socket={this.socket} />
-                    <ConnectionStatus socket={this.socket}/>
+                    <Controls socket={this.socket}/>
                 </div>
                 <div className="row">
-                    <div className="col-50">
-                        <Library socket={this.socket}/>
-                    </div>
-                    <div className="col-50">
-                        <TrackList socket={this.socket}/>
-                    </div>
+                    <input ref="libraryRespCheckbox" onChange={this.handleLibraryRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-library" />
+                    <label htmlFor="resp-toggle-library"></label>
+                    <Library socket={this.socket} className="col-50" onBlur={this.hideLibraryTrackList}/>
+                    <input ref="trackListRespCheckbox" onChange={this.handleTrackListRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-track-list" />
+                    <label htmlFor="resp-toggle-track-list"></label>
+                    <TrackList socket={this.socket} className="col-50"/>
                 </div>
             </div>
         )
@@ -59,7 +73,7 @@ export default class MediaPlayer extends Component {
 class Status extends Component {
     render() {
         return (
-            <p className={this.type || ''}>{this.state.text}</p>
+            <span className={this.type || ''}>{this.state.text}</span>
         );
     }
 }
@@ -139,27 +153,36 @@ class CurrentTrackInfo extends Component {
             curTime: 0,
             trackNumber: 0,
             totalTracks: 1,
-            trackInfo: new TrackInfo()
+            trackInfo: new TrackInfo(),
+            playing: false
         };
         this.interval = undefined;
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
+            if (data.status === 'waitingForCD') {
+                clearInterval(this.interval);
+                this.setState({
+                    playing: false
+                });
+                return;
+            }
             const curTrackInfo = data.cur_track_info;
             if (curTrackInfo) {
                 let trackInfo = curTrackInfo.track_number !== undefined ? this.props.trackList[curTrackInfo.track_number] : this.state.trackInfo;
-                if(trackInfo) {
+                if (trackInfo) {
                     this.setState({
                         trackNumber: curTrackInfo.track_number === undefined ? this.state.trackNumber : curTrackInfo.track_number,
                         curTime: curTrackInfo.cur_time,
                         totalTracks: this.props.trackList.length,
-                        trackInfo: trackInfo || this.state.trackInfo
+                        trackInfo: trackInfo || this.state.trackInfo,
+                        playing: true
                     });
-                    if (this.interval) clearInterval(this.interval);
+                    clearInterval(this.interval);
                     this.interval = setInterval(() => {
                         this.setState({
                             curTime: this.state.curTime + 100
                         });
                         if (this.state.curTime > trackInfo.totalTime) {
-                            if (this.interval) clearInterval(this.interval);
+                            clearInterval(this.interval);
                             this.props.socket.emit('getCurTrackInfo');
                             setTimeout(() => {
                                 this.props.socket.emit('getCurTrackInfo')
@@ -168,23 +191,21 @@ class CurrentTrackInfo extends Component {
                     }, 100)
                 }
             }
-            if(data.status === 'paused' && this.interval) {
+            if (data.status === 'paused') {
                 clearInterval(this.interval);
             }
         });
     }
 
     render() {
-        const list = [];
-        list.push(<li key="title">{this.state.trackInfo.getTrackTitleInfo()}</li>);
-        list.push(<li key="album">Album: {this.state.trackInfo.album}</li>);
-        list.push(<li key="number">{this.state.trackNumber + 1}/{this.state.totalTracks}</li>);
-        list.push(<li key="time">{this.state.trackInfo.getTimeWithLeadingZeros(this.state.curTime)}</li>);
         return (
             <div className="current-track-info">
-                <ul>
-                    {list}
-                </ul>
+                <div className="title">{this.state.trackInfo.getTrackTitleInfo()}</div>
+                <div className="album">Album: {this.state.trackInfo.album}</div>
+                <div className="clearfix">
+                    <div className="time">{this.state.trackInfo.getTimeWithLeadingZeros(this.state.curTime)}</div>
+                    <div className="number">{this.state.trackNumber + 1}/{this.state.totalTracks}</div>
+                </div>
             </div>
         )
     }
@@ -195,26 +216,35 @@ class ProgressBar extends Component {
         super(props);
         this.state = {
             progress: 0,
-            curTime: 0
+            curTime: 0,
+            playing: false
         };
         this.interval = undefined;
         this.props.socket.subscribeToEvent('media_player_info', (data) => {
-            let curTrackInfo = data.cur_track_info;
+            if (data.status === 'waitingForCD') {
+                clearInterval(this.interval);
+                this.setState({
+                    playing: false
+                });
+                return;
+            }
+            const curTrackInfo = data.cur_track_info;
             if (curTrackInfo) {
                 let mediaInfo = this.props.trackList[curTrackInfo.track_number];
-                if(mediaInfo) {
+                if (mediaInfo) {
                     this.setState({
                         progress: Math.round(curTrackInfo.cur_time * 100 / mediaInfo.totalTime),
-                        curTime: curTrackInfo.cur_time
+                        curTime: curTrackInfo.cur_time,
+                        playing: true
                     });
-                    if (this.interval) clearInterval(this.interval);
+                    clearInterval(this.interval);
                     this.interval = setInterval(() => {
                         this.setState({
                             progress: Math.round((this.state.curTime + 100) * 100 / mediaInfo.totalTime),
-                            curTime: this.state.curTime + 100,
+                            curTime: this.state.curTime + 100
                         });
                         if (this.state.curTime > mediaInfo.totalTime) {
-                            if (this.interval) clearInterval(this.interval);
+                            clearInterval(this.interval);
                             this.props.socket.emit('getCurTrackInfo');
                             setTimeout(() => {
                                 this.props.socket.emit('getCurTrackInfo')
@@ -223,12 +253,14 @@ class ProgressBar extends Component {
                     }, 100)
                 }
             }
-            if(data.status === 'paused' && this.interval) {
+            if (data.status === 'paused') {
                 clearInterval(this.interval);
             }
         });
 
-        this.handleSeekerClick = this.handleSeekerClick.bind(this);
+        this.handleSeekerClick = this.handleSeekerClick.bind(this)
+        this.handleSeekerMouseMove = this.handleSeekerMouseMove.bind(this);
+        this.handleSeekerMouseOut = this.handleSeekerMouseOut.bind(this);
     }
 
     handleSeekerClick(e) {
@@ -240,14 +272,31 @@ class ProgressBar extends Component {
         });
     }
 
+    handleSeekerMouseMove(e) {
+        let x = e.nativeEvent.offsetX;
+        let width = this.refs.seeker.offsetWidth;
+        this.refs.seekerHover.style.display = 'block';
+        this.refs.seekerHover.style.left = x + 'px';
+        if(x < this.state.progress/100 * width) {
+            this.refs.seekerHover.classList.add('white');
+        } else {
+            this.refs.seekerHover.classList.remove('white');
+        }
+    }
+
+    handleSeekerMouseOut(e) {
+        this.refs.seekerHover.style.display = 'none'
+    }
+
     render() {
         let progressBarStyle = {
-            width: this.state.progress + '%'
+            width: this.state.playing ? this.state.progress + '%' : 0
         };
         return (
             <div ref="seeker" className="progress-bar-container">
                 <div className="progress-bar" style={progressBarStyle}/>
-                <div ref="seeker" className="seeker" onClick={this.handleSeekerClick}/>
+                <div ref="seeker" className="seeker" onClick={this.handleSeekerClick} onMouseMove={this.handleSeekerMouseMove} onMouseOut={this.handleSeekerMouseOut}/>
+                <div ref="seekerHover" className="seeker-hover" />
             </div>
         )
     }

@@ -30,12 +30,12 @@ export default class Controls extends Component {
     render() {
         return (
             <div className={'controls ' + (!this.state.enabled ? 'disabled' : '')}>
-                <Control type="prevBranch" icon="step-backward" enabled={this.state.enabled} socket={this.props.socket} />
                 <Control type="prevTrack" icon="fast-backward" enabled={this.state.enabled} socket={this.props.socket} />
                 <PlayPause enabled={this.state.enabled} socket={this.props.socket} />
                 <Control type="nextTrack" icon="fast-forward" enabled={this.state.enabled} socket={this.props.socket} />
-                <Control type="nextBranch" icon="step-forward" enabled={this.state.enabled} socket={this.props.socket} />
+                <Control type="prevBranch" icon="step-backward" enabled={this.state.enabled} socket={this.props.socket} />
                 <Control type="eject" icon="eject" enabled={this.state.enabled} socket={this.props.socket} />
+                <Control type="nextBranch" icon="step-forward" enabled={this.state.enabled} socket={this.props.socket} />
             </div>
         )
     }
