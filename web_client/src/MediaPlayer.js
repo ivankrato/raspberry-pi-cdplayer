@@ -2,9 +2,7 @@ import React, {Component} from 'react';
 import {Socket, TrackInfo} from './Helpers';
 import Library from './Library';
 import TrackList from './TrackList';
-import Controls from './Controls';
-
-// TODO reset while waiting for CD
+import Controls, {VolumeControls} from './Controls';
 
 export default class MediaPlayer extends Component {
     constructor(props) {
@@ -37,7 +35,6 @@ export default class MediaPlayer extends Component {
     }
 
 
-
     handleLibraryRespCheckboxChange() {
         this.refs.trackListRespCheckbox.checked = false;
     }
@@ -45,6 +42,7 @@ export default class MediaPlayer extends Component {
     handleTrackListRespCheckboxChange() {
         this.refs.libraryRespCheckbox.checked = false;
     }
+
     render() {
         return (
             <div className="media-player-container">
@@ -55,13 +53,14 @@ export default class MediaPlayer extends Component {
                     </div>
                     <CurrentTrackInfo socket={this.socket} trackList={this.state.trackList}/>
                     <ProgressBar socket={this.socket} trackList={this.state.trackList}/>
+                    <VolumeControls socket={this.socket}/>
                     <Controls socket={this.socket}/>
                 </div>
                 <div className="row">
-                    <input ref="libraryRespCheckbox" onChange={this.handleLibraryRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-library" />
+                    <input ref="libraryRespCheckbox" onChange={this.handleLibraryRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-library"/>
                     <label htmlFor="resp-toggle-library"></label>
                     <Library socket={this.socket} className="col-50" onBlur={this.hideLibraryTrackList}/>
-                    <input ref="trackListRespCheckbox" onChange={this.handleTrackListRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-track-list" />
+                    <input ref="trackListRespCheckbox" onChange={this.handleTrackListRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-track-list"/>
                     <label htmlFor="resp-toggle-track-list"></label>
                     <TrackList socket={this.socket} className="col-50"/>
                 </div>
@@ -187,6 +186,9 @@ class CurrentTrackInfo extends Component {
                             setTimeout(() => {
                                 this.props.socket.emit('getCurTrackInfo')
                             }, 1000);
+                            setTimeout(() => {
+                                this.props.socket.emit('getCurTrackInfo')
+                            }, 5000);
                         }
                     }, 100)
                 }
@@ -249,6 +251,9 @@ class ProgressBar extends Component {
                             setTimeout(() => {
                                 this.props.socket.emit('getCurTrackInfo')
                             }, 1000);
+                            setTimeout(() => {
+                                this.props.socket.emit('getCurTrackInfo')
+                            }, 5000);
                         }
                     }, 100)
                 }
@@ -277,7 +282,7 @@ class ProgressBar extends Component {
         let width = this.refs.seeker.offsetWidth;
         this.refs.seekerHover.style.display = 'block';
         this.refs.seekerHover.style.left = x + 'px';
-        if(x < this.state.progress/100 * width) {
+        if (x < this.state.progress / 100 * width) {
             this.refs.seekerHover.classList.add('white');
         } else {
             this.refs.seekerHover.classList.remove('white');
@@ -296,7 +301,7 @@ class ProgressBar extends Component {
             <div ref="seeker" className="progress-bar-container">
                 <div className="progress-bar" style={progressBarStyle}/>
                 <div ref="seeker" className="seeker" onClick={this.handleSeekerClick} onMouseMove={this.handleSeekerMouseMove} onMouseOut={this.handleSeekerMouseOut}/>
-                <div ref="seekerHover" className="seeker-hover" />
+                <div ref="seekerHover" className="seeker-hover"/>
             </div>
         )
     }

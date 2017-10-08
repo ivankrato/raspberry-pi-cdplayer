@@ -7,8 +7,6 @@ from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
 import json
 
 
-# TODO: change playlist, set data on reconnect, library CSS
-
 class MediaPlayer:
     class DiskType(Enum):
         AUDIO_CD = 'audio_cd'
@@ -19,7 +17,7 @@ class MediaPlayer:
         ARTISTS = 'artists'
         ALBUMS = 'albums'
 
-    MPV_COMMAND = ["mpv", "--quiet", "--audio-device=alsa/plughw:Device,DEV=0",
+    MPV_COMMAND = ["mpv", "--quiet",
                    "--cache=1024", "--loop",
                    "--input-ipc-server=/tmp/mpvsocket"]
 
@@ -32,8 +30,9 @@ class MediaPlayer:
         self._current_media_library_branch_type_index = None
         self._info_events = None
         self._current_track = 0
+        self._volume = 20
 
-    def get_current_info(self, status=True, cur_track_info=True, track_list=False, library=False):
+    def get_current_info(self, status=True, cur_track_info=True, volume=True, track_list=False, library=False):
         info = MediaPlayerInfo()
         if self.is_running:
             if status:
@@ -57,11 +56,17 @@ class MediaPlayer:
                             for track in self._current_track_list[0:self._current_track]:
                                 time_millis -= track.total_time
                         info.cur_track_info.cur_time = time_millis
+            if volume:
+                vol = self._run_command('get_property', 'volume')
+                if vol is not None:
+                    self._volume = vol
+                    info.volume = vol
             if track_list and self._current_track_list is not None:
                 info.track_list = list(map(lambda x: x.as_dict(), self._current_track_list))
             if library and self._media_library is not None:
                 info.library = self._media_library
         else:
+            info.volume = self._volume
             info.status = 'waitingForCD'
 
         return info
@@ -81,16 +86,17 @@ class MediaPlayer:
                 # check for audio CD
                 print('playing audio CD')
                 self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND + [
-                    'cdda://'
+                    'cdda://', '--volume=' + str(self._volume)
                 ], bufsize=1)
             elif cd_type == MediaPlayer.DiskType.MP3_CD:
                 # check for MP3 CD
                 print('playing MP3 CD')
                 self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
-                                             [self._media_library.media_folders[0].path],
+                                             [self._media_library.media_folders[0].path] +
+                                             ['--volume=' + str(self._volume)],
                                              bufsize=1)
                 self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS, 0)
-            info = self.get_current_info(True, False, True, True)
+            info = self.get_current_info(True, False, True, True, True)
             # fill cur_track_info with zeros, because it may not be initialized yet (mpv loading)
             info.cur_track_info = CurrentTrackInfo()
             info.cur_track_info.cur_time = 0
@@ -140,9 +146,9 @@ class MediaPlayer:
     def _put_info_with_delay(self, full=False):
         if full:
             sleep(0.2)
-            self._info_events.put(self.get_current_info(True, True, True, True))
+            self._info_events.put(self.get_current_info(True, True, True, True, True))
             sleep(1)
-            self._info_events.put(self.get_current_info(True, True, True, True))
+            self._info_events.put(self.get_current_info(True, True, True, True, True))
         else:
             sleep(0.2)
             self._info_events.put(self.get_current_info())
@@ -256,6 +262,18 @@ class MediaPlayer:
                 for file in ordered_files[1:]:
                     self._run_command('loadfile', file.full_path, 'append')
         self._put_info_with_delay(True)
+
+    def volume_up(self):
+        self._volume = (self._volume + 5) % 101
+        self._run_command('set', 'volume', str(self._volume))
+        self._info_events.put(self.get_current_info(False, False, True, False, False))
+
+    def volume_down(self):
+        volume = self._volume - 5
+        volume = volume if volume >= 0 else 0
+        self._volume = volume
+        self._run_command('set', 'volume', str(self._volume))
+        self._info_events.put(self.get_current_info(False, False, True, False, False))
 
     def play_pause(self):
         pause = self._run_command('get_property', 'pause')

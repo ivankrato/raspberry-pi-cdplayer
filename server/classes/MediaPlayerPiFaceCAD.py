@@ -1,5 +1,6 @@
 import pifacecad
 from threading import Thread, Barrier, BrokenBarrierError, Timer
+from time import sleep
 from math import floor
 
 
@@ -22,11 +23,11 @@ class MediaPlayerPiFaceCAD:
         self._switch_listener.register(0, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.prev_branch))
         self._switch_listener.register(1, pifacecad.IODIR_ON,
-                                       lambda event: media_player.play_pause())
-        self._switch_listener.register(2, pifacecad.IODIR_ON,
-                                       lambda event: media_player.play_pause())
-        self._switch_listener.register(3, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.next_branch))
+        self._switch_listener.register(2, pifacecad.IODIR_ON,
+                                       lambda event: media_player.volume_down())
+        self._switch_listener.register(3, pifacecad.IODIR_ON,
+                                       lambda event: media_player.volume_up())
         self._switch_listener.register(5, pifacecad.IODIR_ON,
                                        lambda event: media_player.play_pause())
         self._switch_listener.register(6, pifacecad.IODIR_ON,
@@ -41,6 +42,14 @@ class MediaPlayerPiFaceCAD:
         self._cad.lcd.clear()
         self._cad.lcd.backlight_on()
         self._cad.lcd.write('Waiting for CD')
+        self._write_info_thread = Thread(target=self._write_info_thread_func)
+        self._write_info_thread.setDaemon(True)
+        self._write_info_thread.start()
+
+    def _write_info_thread_func(self):
+        while self._media_player.is_running:
+            self.write_info(self._media_player.get_current_info())
+            sleep(0.8)
 
     def _switch_listener_wait_for_deactivation(self):
         try:
@@ -86,7 +95,10 @@ class MediaPlayerPiFaceCAD:
                 total_tracks = len(track_list)
                 cur_track = media_player_info.cur_track_info.track_number + 1
                 track_str_len = len(str(cur_track)) + len(str(total_tracks)) + 1
-                self._cad.lcd.set_cursor(16 - track_str_len, 1)
+                self._cad.lcd.set_cursor(9, 1)
+                if track_str_len < 7:
+                    for i in range(0, 7 - track_str_len):
+                        self._cad.lcd.write(' ')
                 self._cad.lcd.write(str(cur_track) + '/' + str(total_tracks))
             if media_player_info.cur_track_info.cur_time is not None:
                 # track time

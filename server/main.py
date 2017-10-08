@@ -35,7 +35,7 @@ for event in ['connect', 'reconnect']:
     @socket.on(event)
     def ws_connect():
         emit('status', 'connected')
-        socket.emit('media_player_info', media_player.get_current_info(True, True, True, True).as_dict())
+        socket.emit('media_player_info', media_player.get_current_info(True, True, True, True, True).as_dict())
         sleep(1)
         socket.emit('media_player_info', media_player.get_current_info().as_dict())
         print('connected')
@@ -96,29 +96,34 @@ def ws_next_branch():
 @socket.on('prevTrack')
 def ws_prev_track():
     media_player.prev_track()
-    print('prevTrack')
 
 
 @socket.on('nextTrack')
 def ws_next_track():
     media_player.next_track()
-    print('nextTrack')
+
+@socket.on('volumeUp')
+def ws_volume_up():
+    media_player.volume_up()
+
+@socket.on('volumeDown')
+def ws_volume_down():
+    media_player.volume_down()
 
 
 @socket.on('play')
 def ws_play():
     media_player.play_pause()
-    print('play')
 
 
 @socket.on('pause')
 def ws_pause():
     media_player.play_pause()
-    print('pause')
 
 
 @socket.on('eject')
 def ws_eject():
+    cad.destroy()
     media_player.stop()
 
 
@@ -128,6 +133,7 @@ def ws_seek(data):
 
 
 def play_cd(media_player):
+    global cad
     media_player.try_play_cd()  # try to play CD after running the program
     cad = None
     if media_player.is_running:
@@ -137,9 +143,6 @@ def play_cd(media_player):
             for info in iter(media_player.poll_info, None):
                 print(info.as_dict())
                 socket.emit('media_player_info', info.as_dict())
-            if cad is not None and media_player.is_running:
-                # TODO make separate thread in MediaPlayerPiFaceCAD with sleep(1)
-                cad.write_info(media_player.get_current_info())
             sleep(0.2)
         cad.destroy()
         socket.emit('media_player_info', media_player.get_current_info().as_dict())
@@ -160,6 +163,7 @@ web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
 web_server_thread.start()
 
+cad = None
 media_player = MediaPlayer()
 
 # Eject button

@@ -133,7 +133,6 @@ body {
         }
 
         .controls {
-            padding-top: 20px;
             color: $color-main;
             font-size: 40px;
             text-align: center;
@@ -182,6 +181,23 @@ body {
                 .control {
                     border-color: gray;
                     cursor: default;
+                }
+            }
+        }
+
+        .volume-controls {
+            text-align: right;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            color: $color-main;
+
+            .up,
+            .down {
+                cursor: pointer;
+                color: rgba($color-main, 0.5);
+
+                &:hover {
+                    color: $color-main;
                 }
             }
         }
@@ -250,6 +266,10 @@ body {
             @media(max-width: $resp-width-max) {
                 padding-top: 70px;
             }
+        }
+
+        ol li {
+            padding-left: 10px;
         }
     }
 

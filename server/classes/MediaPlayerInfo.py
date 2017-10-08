@@ -1,11 +1,12 @@
 DEFAULT_ARTIST = "Unknown Artist"
 DEFAULT_ALBUM = "Unknown Album"
-DEFAULT_TITLE = "Track"
+DEFAULT_TITLE = "Unknown"
 
 
 class MediaPlayerInfo:
     def __init__(self, status=None):
         self.status = status
+        self.volume = None
         self.cur_track_info = None
         self.track_list = None
         self.library = None
@@ -13,7 +14,8 @@ class MediaPlayerInfo:
     def as_dict(self):
         _dict = {
             'status': self.status,
-            'track_list': self.track_list
+            'track_list': self.track_list,
+            'volume': self.volume
         }
         if self.cur_track_info is not None:
             _dict['cur_track_info'] = self.cur_track_info.as_dict()

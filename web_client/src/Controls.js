@@ -96,3 +96,46 @@ class PlayPause extends Component {
         )
     }
 }
+
+export class VolumeControls extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            volume: 20
+        };
+        this.props.socket.subscribeToEvent('media_player_info', (data) => {
+            if (data.volume) {
+                this.setState({
+                    volume: data.volume,
+                })
+            }
+        });
+
+        this.handleVolumeDownClick = this.handleVolumeDownClick.bind(this);
+        this.handleVolumeUpClick = this.handleVolumeUpClick.bind(this);
+    }
+
+    handleVolumeDownClick() {
+        this.props.socket.emit('volumeDown');
+        this.setState({
+            volume: this.state.volume - 5 >= 0 ? this.state.volume - 5 : 0,
+        })
+    }
+
+    handleVolumeUpClick() {
+        this.props.socket.emit('volumeUp');
+        this.setState({
+            volume: (this.state.volume + 5) % 101,
+        })
+    }
+
+    render() {
+        return(
+            <div className="volume-controls">
+                <FontAwesome name="volume-down" fixedWidth={true} className="down" onClick={this.handleVolumeDownClick}/>
+                <span className="volume">{this.state.volume}%</span>
+                <FontAwesome name="volume-up" fixedWidth={true} className="up" onClick={this.handleVolumeUpClick}/>
+            </div>
+        )
+    }
+}
