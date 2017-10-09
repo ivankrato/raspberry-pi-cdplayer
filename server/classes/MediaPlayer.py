@@ -17,7 +17,8 @@ class MediaPlayer:
         ARTISTS = 'artists'
         ALBUMS = 'albums'
 
-    MPV_COMMAND = ["mpv", "--quiet",
+    MPV_COMMAND = ["mpv", "--quiet", "--vo=null",
+                   "--no-audio-display",
                    "--cache=1024", "--loop",
                    "--input-ipc-server=/tmp/mpvsocket"]
 
@@ -92,9 +93,10 @@ class MediaPlayer:
             elif cd_type == MediaPlayer.DiskType.MP3_CD:
                 # check for MP3 CD
                 print('playing MP3 CD')
-                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND +
-                                             [self._media_library.media_folders[0].path] +
-                                             ['--volume=' + str(self._volume)],
+                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND + ['--volume=' + str(self._volume)] +
+                                             list(map(lambda file: file.full_path,
+                                                      self._media_library.media_folders[0].media_files))
+                                             ,
                                              bufsize=1)
                 self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS, 0)
             info = self.get_current_info(True, False, True, True, True)
@@ -108,6 +110,7 @@ class MediaPlayer:
         self._current_disk_type = None
         if not self.is_running:
             self._cd.load_cd_info()
+            df = []
             if CD.is_cd_inserted():
                 numtracks = self._cd.numtracks
                 if numtracks > 1:
@@ -116,16 +119,19 @@ class MediaPlayer:
                     self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
                 else:
                     df = subprocess.getoutput('df | grep sr0').split()
-                    mount_point = ' '.join(df[5:])
-                    self._media_library = MediaLibrary()
-                    self._media_library.init(mount_point)
-                    if self._media_library.media_file_count > 0:
-                        self._current_disk_type = MediaPlayer.DiskType.MP3_CD
-                        self._current_track_list = list(map(
-                            lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
-                                                         media_info.title),
-                            self._media_library.media_folders[0].media_files))
-                        print(self._media_library.as_dict())
+            else:
+                df = subprocess.getoutput('df | grep sda1').split()
+            if len(df) > 0:
+                mount_point = ' '.join(df[5:])
+                self._media_library = MediaLibrary()
+                self._media_library.init(mount_point)
+                if self._media_library.media_file_count > 0:
+                    self._current_disk_type = MediaPlayer.DiskType.MP3_CD
+                    self._current_track_list = list(map(
+                        lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
+                                                     media_info.title),
+                        self._media_library.media_folders[0].media_files))
+                    print(self._media_library.as_dict())
         return self._current_disk_type
 
     def _run_command(self, *command):
@@ -290,6 +296,7 @@ class MediaPlayer:
         except:
             print("Nothing is playing.")
         self.eject()
+        subprocess.call(['umount', '/dev/sda1'])
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None

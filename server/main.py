@@ -182,6 +182,6 @@ udev_context = pyudev.Context()
 udev_monitor = pyudev.Monitor.from_netlink(udev_context)
 udev_monitor.filter_by(subsystem='block')
 for device in iter(udev_monitor.poll, None):
-    if device.action == 'change':
+    if device.action == 'change' or device.action == 'add':
         sleep(1)
         play_cd(media_player)
