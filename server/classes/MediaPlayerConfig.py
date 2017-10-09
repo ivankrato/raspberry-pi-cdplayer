@@ -4,10 +4,13 @@ class MediaPlayerConfig:
         with open(file_path) as file:
             for line in file:
                 line.rstrip('\n')
-                if line.startswith('#') or len(line) == 0:
+                if line.startswith('#'):
                     continue
                 ar = line.split('=')
-                self._config_dict[ar[0]] = ar[1]
+                try:
+                    self._config_dict[ar[0]] = ar[1]
+                except IndexError:
+                    pass
 
     def get(self, key):
         try:
