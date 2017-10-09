@@ -1,5 +1,4 @@
 {
-  "expo": {
-    "sdkVersion": "20.0.0"
-  }
+  "name": "Raspberry_Pi_CDplayer_mobile_client",
+  "displayName": "Raspberry_Pi_CDplayer_mobile_client"
 }
