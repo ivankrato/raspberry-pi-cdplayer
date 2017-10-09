@@ -30,6 +30,10 @@ socket = SocketIO(app, async_mode='threading')
 def index():
     return 'test'
 
+@app.route('/getMediaPlayerInfo')
+def info():
+    return config['NAME']
+
 
 for event in ['connect', 'reconnect']:
     @socket.on(event)
