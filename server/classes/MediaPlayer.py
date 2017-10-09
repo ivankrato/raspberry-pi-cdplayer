@@ -21,7 +21,8 @@ class MediaPlayer:
                    "--cache=1024", "--loop",
                    "--input-ipc-server=/tmp/mpvsocket"]
 
-    def __init__(self):
+    def __init__(self, config):
+        self._config = config
         self._cd = CD()
         self._mpv = None
         self._current_disk_type = None

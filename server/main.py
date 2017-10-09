@@ -1,11 +1,11 @@
-from threading import Thread, Timer
+from threading import Thread
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
-import json
 import logging
 from classes.MediaPlayer import MediaPlayer
-from classes.MediaLibrary import MediaLibrary
 from time import sleep
+from classes.MediaPlayerConfig import MediaPlayerConfig
+import pyudev
 
 has_pi_face_cad = True
 
@@ -15,7 +15,7 @@ except ImportError:
     print('NO PIFACE CAD LIBRARY INSTALLED')
     has_pi_face_cad = False
 
-import pyudev
+config = MediaPlayerConfig('media_player.conf')
 
 # Web server configuration
 app = Flask(__name__, template_folder=".", static_folder=".")
@@ -48,7 +48,7 @@ def ws_disconnect():
 
 @socket.on('getCurTrackInfo')
 def ws_get_current_track_info():
-    socket.emit('media_player_info', media_player.get_current_info(True, True, True, True).as_dict())
+    socket.emit('media_player_info', media_player.get_current_info(True, True, True, True, True).as_dict())
 
 
 @socket.on('playFile')
@@ -102,9 +102,11 @@ def ws_prev_track():
 def ws_next_track():
     media_player.next_track()
 
+
 @socket.on('volumeUp')
 def ws_volume_up():
     media_player.volume_up()
+
 
 @socket.on('volumeDown')
 def ws_volume_down():
@@ -155,7 +157,7 @@ def start_web_server():
     :return: None
     """
     if __name__ == '__main__':
-        socket.run(app, "0.0.0.0", port=5123)
+        socket.run(app, config['WEB_IP'], port=config['WEB_PORT'])
 
 
 # Start web server thread
@@ -164,7 +166,7 @@ web_server_thread.setDaemon(True)
 web_server_thread.start()
 
 cad = None
-media_player = MediaPlayer()
+media_player = MediaPlayer(config)
 
 # Eject button
 eject_listener = MediaPlayerPiFaceCAD.create_eject_listener(media_player)
