@@ -17,13 +17,13 @@ class MediaPlayer:
         ARTISTS = 'artists'
         ALBUMS = 'albums'
 
-    MPV_COMMAND = ["mpv", "--quiet", "--vo=null",
-                   "--no-audio-display",
-                   "--cache=1024", "--loop",
-                   "--input-ipc-server=/tmp/mpvsocket"]
 
     def __init__(self, config):
         self._config = config
+        self.MPV_COMMAND = ["mpv", "--quiet", "--vo=null",
+                   "--no-audio-display",
+                   "--cache=1024", "--loop",
+                   "--input-ipc-server=" + self._config['MPV_SOCKET_PATH']]
         self._cd = CD()
         self._mpv = None
         self._current_disk_type = None
@@ -87,13 +87,13 @@ class MediaPlayer:
             if cd_type == MediaPlayer.DiskType.AUDIO_CD:
                 # check for audio CD
                 print('playing audio CD')
-                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND + [
-                    'cdda://', '--volume=' + str(self._volume)
+                self._mpv = subprocess.Popen(self.MPV_COMMAND + [
+                    'cdda://', '--volume=' + self._config['DEFAULT_VOLUME']
                 ], bufsize=1)
             elif cd_type == MediaPlayer.DiskType.MP3_CD:
                 # check for MP3 CD
                 print('playing MP3 CD')
-                self._mpv = subprocess.Popen(MediaPlayer.MPV_COMMAND + ['--volume=' + str(self._volume)] +
+                self._mpv = subprocess.Popen(self.MPV_COMMAND + ['--volume=' + self._config['DEFAULT_VOLUME']] +
                                              list(map(lambda file: file.full_path,
                                                       self._media_library.media_folders[0].media_files))
                                              ,
@@ -118,9 +118,9 @@ class MediaPlayer:
                     self._current_disk_type = MediaPlayer.DiskType.AUDIO_CD
                     self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
                 else:
-                    df = subprocess.getoutput('df | grep sr0').split()
+                    df = subprocess.getoutput('df | grep ' + self._config['CD_DEVICE']).split()
             else:
-                df = subprocess.getoutput('df | grep sda1').split()
+                df = subprocess.getoutput('df | grep ' + self._config['USB_DEVICE']).split()
             if len(df) > 0:
                 mount_point = ' '.join(df[5:])
                 self._media_library = MediaLibrary()
@@ -139,7 +139,7 @@ class MediaPlayer:
             "command": command
         }
         command_json = json.dumps(command_dict) + '\n'
-        socat = subprocess.Popen(['socat', '-', '/tmp/mpvsocket'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        socat = subprocess.Popen(['socat', '-', self._config['MPV_SOCKET_PATH']], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         socat_output = socat.communicate(command_json.encode('utf-8'))
         if socat_output[0] is not None and \
                         len(socat_output[0]) != 0 and \
@@ -296,7 +296,7 @@ class MediaPlayer:
         except:
             print("Nothing is playing.")
         self.eject()
-        subprocess.call(['umount', '/dev/sda1'])
+        subprocess.call(['umount', '/dev/' + self._config['USB_DEVICE']])
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None

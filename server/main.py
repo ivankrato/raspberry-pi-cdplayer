@@ -7,20 +7,23 @@ from time import sleep
 from classes.MediaPlayerConfig import MediaPlayerConfig
 import pyudev
 
+config = MediaPlayerConfig('media_player.conf')
+
 cad = None
 try:
     from classes.MediaPlayerPiFaceCAD import MediaPlayerPiFaceCAD
     from pifacecad.core import NoPiFaceCADDetectedError
-    cad = MediaPlayerPiFaceCAD()
+
+    cad = MediaPlayerPiFaceCAD(config)
 except ImportError:
     print('NO PIFACECAD LIBRARY FOUND')
 except NoPiFaceCADDetectedError:
     print('NO PIFACECAD FOUND')
 
-config = MediaPlayerConfig('media_player.conf')
+media_player = MediaPlayer(config)
 
 # Web server configuration
-app = Flask(__name__, template_folder=".", static_folder=".")
+app = Flask(__name__, template_folder=".", static_url_path="/static")
 app.debug = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 log = logging.getLogger('werkzeug')
@@ -31,6 +34,7 @@ socket = SocketIO(app, async_mode='threading')
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/getMediaPlayerInfo')
 def info():
@@ -168,8 +172,6 @@ def start_web_server():
 web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
 web_server_thread.start()
-
-media_player = MediaPlayer(config)
 
 # Eject button
 if cad is not None:

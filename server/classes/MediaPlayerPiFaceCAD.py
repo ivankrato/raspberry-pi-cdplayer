@@ -5,26 +5,28 @@ from math import floor
 
 
 class MediaPlayerPiFaceCAD:
-    def __init__(self):
+    def __init__(self, config):
+        self._config = config
         self._cad = pifacecad.PiFaceCAD()
         self._cad.lcd.blink_off()
         self._cad.lcd.cursor_off()
         self._media_player = None
         self._switch_listener = pifacecad.SwitchEventListener()
-        self._ir_listener = pifacecad.IREventListener('raspberry-pi-cdplayer')
+        self._ir_listener = pifacecad.IREventListener(self._config['NAME'])
         self._temp_text = None
         self._temp_text_Timer = None
+        self._listeners_barrier = None
+        self._listeners_wait_for_deactivation_thread = None
+        self._write_info_thread = None
+
+    def init(self, media_player):
+        self._media_player = media_player
 
         # https://github.com/piface/pifacedigitalio/issues/27
         self._listeners_barrier = Barrier(2)
         self._listeners_wait_for_deactivation_thread = Thread(target=self._switch_listener_wait_for_deactivation,
                                                               args=[])
         self._listeners_wait_for_deactivation_thread.setDaemon(True)
-        self._write_info_thread = Thread(target=self._write_info_thread_func)
-        self._write_info_thread.setDaemon(True)
-
-    def init(self, media_player):
-        self._media_player = media_player
         self._listeners_wait_for_deactivation_thread.start()
         self._switch_listener.register(0, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.prev_branch))
@@ -41,22 +43,24 @@ class MediaPlayerPiFaceCAD:
         self._switch_listener.register(7, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.next_track))
         self._switch_listener.activate()
-        self._ir_listener.register('play_pause', lambda event: callAndSleep(media_player.play_pause))
+        self._ir_listener.register('play_pause', lambda event: call_and_sleep(media_player.play_pause))
         self._ir_listener.register('next_track',
-                                   lambda event: callAndSleep(self._clear_and_call, media_player.next_track))
+                                   lambda event: call_and_sleep(self._clear_and_call, media_player.next_track))
         self._ir_listener.register('prev_track',
-                                   lambda event: callAndSleep(self._clear_and_call, media_player.prev_track))
+                                   lambda event: call_and_sleep(self._clear_and_call, media_player.prev_track))
         self._ir_listener.register('next_branch',
-                                   lambda event: callAndSleep(self._clear_and_call, media_player.next_branch))
+                                   lambda event: call_and_sleep(self._clear_and_call, media_player.next_branch))
         self._ir_listener.register('prev_branch',
-                                   lambda event: callAndSleep(self._clear_and_call, media_player.prev_branch))
-        self._ir_listener.register('eject', lambda event: callAndSleep(media_player.stop))
-        self._ir_listener.register('volume_up', lambda event: callAndSleep(media_player.volume_up))
-        self._ir_listener.register('volume_down', lambda event: callAndSleep(media_player.volume_down))
+                                   lambda event: call_and_sleep(self._clear_and_call, media_player.prev_branch))
+        self._ir_listener.register('eject', lambda event: call_and_sleep(media_player.stop))
+        self._ir_listener.register('volume_up', lambda event: call_and_sleep(media_player.volume_up))
+        self._ir_listener.register('volume_down', lambda event: call_and_sleep(media_player.volume_down))
         self._ir_listener.activate()
         self._cad.lcd.clear()
         self._cad.lcd.backlight_on()
         self._cad.lcd.write('Loading')
+        self._write_info_thread = Thread(target=self._write_info_thread_func)
+        self._write_info_thread.setDaemon(True)
         self._write_info_thread.start()
 
     def _write_info_thread_func(self):
@@ -136,6 +140,6 @@ class MediaPlayerPiFaceCAD:
         return eject_listener
 
 
-def callAndSleep(func, *args):
+def call_and_sleep(func, *args):
     func(*args)
     sleep(0.2)
