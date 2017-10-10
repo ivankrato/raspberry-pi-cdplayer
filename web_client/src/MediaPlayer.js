@@ -103,7 +103,15 @@ class MediaPlayerStatus extends Status {
                     }
                     this.setState({
                         text: text
-                    })
+                    });
+                    /*try {
+                        window.postMessage(JSON.stringify({
+                            status: data.status
+                        }))
+                    }
+                    catch (error) {
+                        // not React Native WebView
+                    }*/
                 }
             }
         );
@@ -190,7 +198,15 @@ class CurrentTrackInfo extends Component {
                                 this.props.socket.emit('getCurTrackInfo')
                             }, 5000);
                         }
-                    }, 100)
+                    }, 100);
+                    /*try {
+                        window.postMessage(JSON.stringify({
+                            trackInfo: trackInfo
+                        }))
+                    }
+                    catch (error) {
+                        // not React Native WebView
+                    }*/
                 }
             }
             if (data.status === 'paused') {
