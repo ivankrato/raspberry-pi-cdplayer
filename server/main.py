@@ -23,7 +23,7 @@ except NoPiFaceCADDetectedError:
 media_player = MediaPlayer(config)
 
 # Web server configuration
-app = Flask(__name__, template_folder=".", static_url_path="/static")
+app = Flask(__name__, template_folder="web", static_folder="web/static", static_url_path="/static")
 app.debug = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 log = logging.getLogger('werkzeug')
