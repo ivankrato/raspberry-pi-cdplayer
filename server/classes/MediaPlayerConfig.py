@@ -2,8 +2,8 @@ class MediaPlayerConfig:
     def __init__(self, file_path):
         self._config_dict = {}
         with open(file_path) as file:
-            for line in file:
-                line.rstrip('\n')
+            lines = file.read().splitlines()
+            for line in lines:
                 if line.startswith('#'):
                     continue
                 ar = line.split('=')

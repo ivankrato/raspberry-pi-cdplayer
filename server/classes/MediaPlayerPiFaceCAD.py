@@ -11,8 +11,8 @@ class MediaPlayerPiFaceCAD:
         self._cad.lcd.blink_off()
         self._cad.lcd.cursor_off()
         self._media_player = None
-        self._switch_listener = pifacecad.SwitchEventListener()
-        self._ir_listener = pifacecad.IREventListener(self._config['NAME'])
+        self._switch_listener = None
+        self._ir_listener = None
         self._temp_text = None
         self._temp_text_Timer = None
         self._listeners_barrier = None
@@ -28,6 +28,7 @@ class MediaPlayerPiFaceCAD:
                                                               args=[])
         self._listeners_wait_for_deactivation_thread.setDaemon(True)
         self._listeners_wait_for_deactivation_thread.start()
+        self._switch_listener = pifacecad.SwitchEventListener()
         self._switch_listener.register(0, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.prev_branch))
         self._switch_listener.register(1, pifacecad.IODIR_ON,
@@ -43,6 +44,7 @@ class MediaPlayerPiFaceCAD:
         self._switch_listener.register(7, pifacecad.IODIR_ON,
                                        lambda event: self._clear_and_call(media_player.next_track))
         self._switch_listener.activate()
+        self._ir_listener = pifacecad.IREventListener(self._config['NAME'])
         self._ir_listener.register('play_pause', lambda event: call_and_sleep(media_player.play_pause))
         self._ir_listener.register('next_track',
                                    lambda event: call_and_sleep(self._clear_and_call, media_player.next_track))

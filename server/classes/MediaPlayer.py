@@ -304,7 +304,7 @@ class MediaPlayer:
         self._media_library = None
 
     def eject(self):
-        subprocess.Popen(['eject', 'cdrom'])
+        subprocess.Popen(['eject', self._config['CD_DEVICE']])
 
     def seek(self, seek_percent):
         time_millis = self._current_track_list[self._current_track].total_time * seek_percent / 100
