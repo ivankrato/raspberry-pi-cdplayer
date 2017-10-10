@@ -5,7 +5,10 @@ import {
     Text,
     View,
     Button,
-    WebView
+    WebView,
+    Modal,
+    TextInput,
+    AsyncStorage
 } from 'react-native';
 import {
     StackNavigator,
@@ -20,6 +23,37 @@ MusicControl.enableControl('nextTrack', true);
 MusicControl.enableControl('previousTrack', true);
 
 class HomeScreen extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            ipModalVisible: false,
+            ipModalIP: null,
+            ipModalPort: null
+        };
+    }
+
+    openIPModal(id = 0, ip = "", port = "51234") {
+        if(id === 0) {
+            //TODO read last IP from storage and increment
+        }
+        this.setState({
+            ipModalVisible: true,
+            ipModalID: id,
+            ipModalIP: ip,
+            ipModalPort: port
+        });
+    }
+
+    closeIPModal(save = false) {
+        // TODO add to storage
+        this.setState({
+            ipModalVisible: false
+        });
+    }
+
+    loadFromStorage() {
+    }
+
     static navigationOptions = {
         header: null
     };
@@ -28,7 +62,27 @@ class HomeScreen extends Component {
         const {navigate} = this.props.navigation;
         return (
             <View style={styles.container}>
-                <Button onPress={() => navigate('MediaPlayer', {uri: 'http://raspberrypi.local:51234'})} title="Try Music Control"/>
+                <Button onPress={() => this.openIPModal()} title="Open modal"/>
+                <Modal
+                    animationType="slide"
+                    transparent={false}
+                    visible={this.state.ipModalVisible}
+                    onRequestClose={() => {this.closeIPModal()}}
+                >
+                    <View>
+                        <TextInput
+                            onChangeText={(ipModalIP) => this.setState({ipModalIP})}
+                            value={this.state.ipModalIP}
+                        />
+                        <TextInput
+                            onChangeText={(ipModalPort) => this.setState({ipModalPort})}
+                            value={this.state.ipModalPort}
+                        />
+
+                        <Button onPress={() => this.closeIPModal(true)} title="Save" />
+
+                    </View>
+                </Modal>
             </View>
         );
     }
@@ -40,17 +94,9 @@ class MediaPlayerScreen extends Component {
     };
 
     render() {
-        const { params } = this.props.navigation.state;
+        const {params} = this.props.navigation.state;
         return (
             <WebView source={{uri: params.uri}}/>
-        )
-    }
-}
-
-class AddIPScreen extends Component {
-    render() {
-        return (
-            <Text>Test</Text>
         )
     }
 }
@@ -58,9 +104,6 @@ class AddIPScreen extends Component {
 export default App = StackNavigator({
     Home: {
         screen: HomeScreen
-    },
-    AddIP: {
-        screen: AddIPScreen
     },
     MediaPlayer: {
         screen: MediaPlayerScreen

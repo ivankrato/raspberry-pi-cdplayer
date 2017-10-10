@@ -1,0 +1,65 @@
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_SELECT
+  config = play_pause
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_RIGHT
+  config = next_track
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_LEFT
+  config = prev_track
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_UP
+  config = next_branch
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_NEXT
+  config = next_branch
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_DOWN
+  config = prev_branch
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_PREV
+  config = prev_branch
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_STOP
+  config = eject
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_OPEN
+  config = eject
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_VOLUMEUP
+  config = volume_up
+end
+
+begin
+  prog = raspberry-pi-cdplayer
+  button = KEY_VOLUMEDOWN
+  config = volume_down
+end

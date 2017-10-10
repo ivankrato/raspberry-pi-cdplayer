@@ -12,7 +12,7 @@ export default class MediaPlayer extends Component {
             mediaPlayerStatus: 'Loading',
             trackList: [],
         };
-        this.socket = new Socket('http://raspberrypi.local:51234'); //TODO change URL to window.location.href
+        this.socket = new Socket();
 
         /*
          * MEDIAPLAYER EVENTS

@@ -7,13 +7,15 @@ from time import sleep
 from classes.MediaPlayerConfig import MediaPlayerConfig
 import pyudev
 
-has_pi_face_cad = True
-
+cad = None
 try:
     from classes.MediaPlayerPiFaceCAD import MediaPlayerPiFaceCAD
+    from pifacecad.core import NoPiFaceCADDetectedError
+    cad = MediaPlayerPiFaceCAD()
 except ImportError:
-    print('NO PIFACE CAD LIBRARY INSTALLED')
-    has_pi_face_cad = False
+    print('NO PIFACECAD LIBRARY FOUND')
+except NoPiFaceCADDetectedError:
+    print('NO PIFACECAD FOUND')
 
 config = MediaPlayerConfig('media_player.conf')
 
@@ -28,7 +30,7 @@ socket = SocketIO(app, async_mode='threading')
 
 @app.route('/')
 def index():
-    return 'test'
+    return render_template('index.html')
 
 @app.route('/getMediaPlayerInfo')
 def info():
@@ -138,13 +140,11 @@ def ws_seek(data):
     media_player.seek(data['seekPercent'])
 
 
-def play_cd(media_player):
-    global cad
+def play_cd(media_player, cad):
     media_player.try_play_cd()  # try to play CD after running the program
-    cad = None
     if media_player.is_running:
-        if has_pi_face_cad:
-            cad = MediaPlayerPiFaceCAD(media_player)
+        if cad is not None:
+            cad.init(media_player)
         while media_player.is_running:
             for info in iter(media_player.poll_info, None):
                 print(info.as_dict())
@@ -169,13 +169,13 @@ web_server_thread = Thread(target=start_web_server, args=[])
 web_server_thread.setDaemon(True)
 web_server_thread.start()
 
-cad = None
 media_player = MediaPlayer(config)
 
 # Eject button
-eject_listener = MediaPlayerPiFaceCAD.create_eject_listener(media_player)
+if cad is not None:
+    eject_listener = MediaPlayerPiFaceCAD.create_eject_listener(media_player)
 
-play_cd(media_player)
+play_cd(media_player, cad)
 
 # check udev for USB changes (including CD insertion)
 udev_context = pyudev.Context()
@@ -184,4 +184,4 @@ udev_monitor.filter_by(subsystem='block')
 for device in iter(udev_monitor.poll, None):
     if device.action == 'change' or device.action == 'add':
         sleep(1)
-        play_cd(media_player)
+        play_cd(media_player, cad)
