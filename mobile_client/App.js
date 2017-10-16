@@ -1,10 +1,11 @@
 import React, {Component} from 'react';
 import {
-    Platform,
     StyleSheet,
     Text,
     View,
+    ScrollView,
     Button,
+    TouchableOpacity,
     WebView,
     Modal,
     TextInput,
@@ -30,8 +31,9 @@ class HomeScreen extends Component {
             ipModalVisible: false,
             ipModalIP: null,
             ipModalPort: null,
-            editIndex: null,
-            ipList: []
+            curIndex: null,
+            ipList: [],
+            lastIndex: 0
         };
     }
 
@@ -47,6 +49,13 @@ class HomeScreen extends Component {
                 ipList: ipList
             })
         });
+        AsyncStorage.getItem('@IPList:lastIndex').then((lastIndex) => {
+            if (lastIndex !== null) {
+                this.setState({
+                    lastIndex: Number(lastIndex)
+                })
+            }
+        })
     }
 
     saveIPList(ipList) {
@@ -65,6 +74,7 @@ class HomeScreen extends Component {
         let ipList = this.state.ipList;
         ipList.splice(index, 1);
         this.saveIPList(ipList);
+        this.closeIPModal();
     }
 
     openIPModal(editIndex = null) {
@@ -72,20 +82,20 @@ class HomeScreen extends Component {
             ipModalVisible: true,
             ipModalIP: editIndex !== null ? this.state.ipList[editIndex].ip : "",
             ipModalPort: editIndex !== null ? this.state.ipList[editIndex].port : "51234",
-            editIndex: editIndex
+            curIndex: editIndex
         });
     }
 
     closeIPModal(save = false) {
         if (save) {
             let ipList = this.state.ipList;
-            if (this.state.editIndex === null) {
+            if (this.state.curIndex === null) {
                 ipList.push({
                     ip: this.state.ipModalIP,
                     port: this.state.ipModalPort
                 });
             } else {
-                ipList[this.state.editIndex] = {
+                ipList[this.state.curIndex] = {
                     ip: this.state.ipModalIP,
                     port: this.state.ipModalPort
                 };
@@ -94,7 +104,7 @@ class HomeScreen extends Component {
         }
         this.setState({
             ipModalVisible: false,
-            editIndex: null
+            curIndex: null
         });
     }
 
@@ -106,10 +116,20 @@ class HomeScreen extends Component {
             alert('Cannot connect to ' + uri);
         }
 
-        const { navigate } = this.props.navigation;
-
+        const {navigate} = this.props.navigation;
         fetch(uri + '/getMediaPlayerInfo').then((response) => {
-            if(response.ok) {
+            if (response.ok) {
+                // save last index
+                try {
+                    AsyncStorage.setItem('@IPList:lastIndex', index.toString());
+                    this.setState({
+                        lastIndex: index
+                    })
+                }
+                catch (error) {
+                    alert(error);
+                }
+                this.closeIPModal();
                 navigate('MediaPlayer', {
                     uri: uri
                 })
@@ -125,20 +145,31 @@ class HomeScreen extends Component {
 
     render() {
         const {navigate} = this.props.navigation;
+        const lastIp = this.state.ipList[this.state.lastIndex] || {ip: '', port: ''};
         return (
             <View style={styles.container}>
-                {this.state.ipList.map((ip, index) => {
-                        return (
-                            <View key={index}>
-                                <Button title={ip.ip + ':' + ip.port} onPress={() => {this.openMediaPlayer(index)}}/>
-                                <Button title="Edit" onPress={() => {this.openIPModal(index)}}/>
-                                <Button title="Delete" onPress={() => {this.deleteFromIPList(index)}}/>
-                            </View>
-                        )
-                    }
-                )}
-                <Button onPress={() => this.openIPModal()} title="Add Media Player"/>
-
+                <ScrollView style={styles.scrollContainer}>
+                    {this.state.ipList.map((ip, index) => {
+                            return (
+                                <View key={index} style={[styles.p5]}>
+                                    <Button style={{flex: 3}} title={ip.ip + ':' + ip.port} onPress={() => {
+                                        this.openIPModal(index)
+                                    }}/>
+                                </View>
+                            )
+                        }
+                    )}
+                </ScrollView>
+                <View style={styles.p5}>
+                    <TouchableOpacity style={styles.connectButton} onPress={() => {
+                        this.openMediaPlayer(this.state.lastIndex)
+                    }}>
+                        <Text style={styles.connectButtonText}>{lastIp.ip}:{lastIp.port}</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.p5}>
+                    <Button color="green" style={styles.p5} onPress={() => this.openIPModal()} title="Add Media Player"/>
+                </View>
 
                 <Modal
                     animationType="slide"
@@ -148,17 +179,44 @@ class HomeScreen extends Component {
                         this.closeIPModal()
                     }}
                 >
-                    <View>
+                    <View style={[styles.p5, styles.modal]}>
                         <TextInput
                             onChangeText={(ipModalIP) => this.setState({ipModalIP})}
                             value={this.state.ipModalIP}
+                            placeholder="IP or hostname"
                         />
                         <TextInput
                             onChangeText={(ipModalPort) => this.setState({ipModalPort})}
                             value={this.state.ipModalPort}
+                            placeholder="Port"
                         />
-
-                        <Button onPress={() => this.closeIPModal(true)} title="Save"/>
+                        <View style={styles.modalButtonContainer}>
+                            <View style={styles.p5}>
+                                <Button onPress={() => this.closeIPModal(true)} title="Save"/>
+                            </View>
+                            {
+                                (() => {
+                                    if (this.state.curIndex !== null) {
+                                        return (
+                                            <View>
+                                                <View style={styles.p5}>
+                                                    <Button color="red" title="Delete" onPress={() => {
+                                                        this.deleteFromIPList(this.state.curIndex)
+                                                    }}/>
+                                                </View>
+                                                <View style={styles.p5}>
+                                                    <TouchableOpacity style={styles.connectButton} onPress={() => {
+                                                        this.openMediaPlayer(this.state.curIndex)
+                                                    }}>
+                                                        <Text style={styles.connectButtonText}>CONNECT</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )
+                                    }
+                                })()
+                            }
+                        </View>
                     </View>
                 </Modal>
             </View>
@@ -173,8 +231,8 @@ class MediaPlayerScreen extends Component {
 
     handleOnMessage(event) {
         data = JSON.parse(event.nativeEvent.data);
-        if(data.status) {
-            switch(data.status) {
+        if (data.status) {
+            switch (data.status) {
                 case 'waitingForCD':
                     MusicControl.resetNowPlaying();
                     break;
@@ -189,7 +247,7 @@ class MediaPlayerScreen extends Component {
                     });
             }
         }
-        if(data.trackInfo) {
+        if (data.trackInfo) {
             MusicControl.setNowPlaying({
                 title: data.trackInfo.title,
                 artist: data.trackInfo.artist,
@@ -217,9 +275,28 @@ export default App = StackNavigator({
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        paddingTop: 20,
+        flex: 1
+    },
+    scrollContainer: {
+        flexDirection: 'column',
+    },
+    p5: {
+        padding: 5
+    },
+    modal: {
+        paddingVertical: 20
+    },
+    connectButton: {
+        backgroundColor: 'green',
+        height: 100,
         justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F5FCFF',
+        borderRadius: 4,
+    },
+    connectButtonText: {
+        fontWeight: 'bold',
+        color: 'white',
+        textAlign: 'center',
+        fontSize: 24,
     }
 });
