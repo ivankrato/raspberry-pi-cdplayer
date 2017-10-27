@@ -145,7 +145,7 @@ class HomeScreen extends Component {
 
     render() {
         const {navigate} = this.props.navigation;
-        const lastIp = this.state.ipList[this.state.lastIndex] || {ip: '', port: ''};
+        const lastIp = this.state.ipList[this.state.lastIndex] || {ip: 'unknown', port: 'unknown'};
         return (
             <View style={styles.container}>
                 <ScrollView style={styles.scrollContainer}>
@@ -162,7 +162,9 @@ class HomeScreen extends Component {
                 </ScrollView>
                 <View style={styles.p5}>
                     <TouchableOpacity style={styles.connectButton} onPress={() => {
-                        this.openMediaPlayer(this.state.lastIndex)
+                        if(this.state.ipList[this.state.lastIndex]) {
+                            this.openMediaPlayer(this.state.lastIndex)
+                        }
                     }}>
                         <Text style={styles.connectButtonText}>{lastIp.ip}:{lastIp.port}</Text>
                     </TouchableOpacity>
@@ -256,10 +258,24 @@ class MediaPlayerScreen extends Component {
         }
     }
 
+    componentDidMount() {
+        for(let event of ['play', 'pause', 'nextTrack']) {
+            MusicControl.on(event, ()=> {
+                this.refs.webView.postMessage(event);
+            });
+        }
+        MusicControl.on('previousTrack', ()=> {
+            this.refs.webView.postMessage('prevTrack');
+        });
+        MusicControl.on('stop', ()=> {
+            this.refs.webView.postMessage('eject');
+        });
+    }
+
     render() {
         const {params} = this.props.navigation.state;
         return (
-            <WebView source={{uri: params.uri}}/>
+            <WebView ref="webView" source={{uri: params.uri}} onMessage={this.handleOnMessage}/>
         )
     }
 }

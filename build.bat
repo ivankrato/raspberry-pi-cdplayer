@@ -9,3 +9,5 @@ call npm install
 call npm run build
 cd ..
 xcopy /E .\web_client\build .\build\web\
+mkdir .\build\mobile_client
+copy .\mobile_client\android\app\build\outputs\apk\app-release.apk .\build\mobile_client\com.raspberry_pi_cdplayer_mobile_client.apk

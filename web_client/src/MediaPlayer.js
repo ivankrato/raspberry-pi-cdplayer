@@ -29,6 +29,13 @@ export default class MediaPlayer extends Component {
                 }
             }
         );
+        /**
+         * React Native WebView events
+         */
+        document.addEventListener('message', (event) => {
+            let data = event.data;
+            this.socket.emit(data);
+        });
 
         this.handleLibraryRespCheckboxChange = this.handleLibraryRespCheckboxChange.bind(this);
         this.handleTrackListRespCheckboxChange = this.handleTrackListRespCheckboxChange.bind(this);
@@ -104,14 +111,14 @@ class MediaPlayerStatus extends Status {
                     this.setState({
                         text: text
                     });
-                    /*try {
+                    try {
                         window.postMessage(JSON.stringify({
                             status: data.status
-                        }))
+                        }), '*')
                     }
                     catch (error) {
                         // not React Native WebView
-                    }*/
+                    }
                 }
             }
         );
@@ -199,14 +206,14 @@ class CurrentTrackInfo extends Component {
                             }, 5000);
                         }
                     }, 100);
-                    /*try {
+                    try {
                         window.postMessage(JSON.stringify({
                             trackInfo: trackInfo
-                        }))
+                        }), '*')
                     }
                     catch (error) {
                         // not React Native WebView
-                    }*/
+                    }
                 }
             }
             if (data.status === 'paused') {
@@ -279,7 +286,7 @@ class ProgressBar extends Component {
             }
         });
 
-        this.handleSeekerClick = this.handleSeekerClick.bind(this)
+        this.handleSeekerClick = this.handleSeekerClick.bind(this);
         this.handleSeekerMouseMove = this.handleSeekerMouseMove.bind(this);
         this.handleSeekerMouseOut = this.handleSeekerMouseOut.bind(this);
     }
