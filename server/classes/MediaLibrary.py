@@ -5,7 +5,7 @@ from enum import Enum
 
 class MediaLibrary:
     """
-    Class MediaLibrary represents a finder that searchs for media (MP3) files
+    Class MediaLibrary represents a finder that searches for media (MP3) files
     and puts them into a tree of folders/files and artists/albums/songs
     """
 

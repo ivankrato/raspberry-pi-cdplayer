@@ -2,8 +2,8 @@ from threading import Thread
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import logging
-from classes.MediaPlayer import MediaPlayer
 from time import sleep
+from classes.MediaPlayer import MediaPlayer
 from classes.MediaPlayerConfig import MediaPlayerConfig
 import pyudev
 
@@ -25,7 +25,6 @@ media_player = MediaPlayer(config)
 # Web server configuration
 app = Flask(__name__, template_folder="web", static_folder="web/static", static_url_path="/static")
 app.debug = False
-app.config['TEMPLATES_AUTO_RELOAD'] = True
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 socket = SocketIO(app, async_mode='threading')
@@ -66,9 +65,9 @@ def ws_play_file(data):
     media_library_type = None
     if data['mediaLibraryType'] == 'artists':
         media_library_type = MediaPlayer.BranchType.ARTISTS
-    if data['mediaLibraryType'] == 'albums':
+    elif data['mediaLibraryType'] == 'albums':
         media_library_type = MediaPlayer.BranchType.ALBUMS
-    if data['mediaLibraryType'] == 'folders':
+    elif data['mediaLibraryType'] == 'folders':
         media_library_type = MediaPlayer.BranchType.FOLDERS
     media_player.play_file(media_library_type, data['indexes'])
 
@@ -144,8 +143,25 @@ def ws_seek(data):
     media_player.seek(data['seekPercent'])
 
 
+# Web server thread starting point
+def start_web_server():
+    """
+    Starts web server
+    :return: None
+    """
+    if __name__ == '__main__':
+        socket.run(app, config['WEB_IP'],
+                   port=config['WEB_PORT'])
+
+
+# Start web server thread
+web_server_thread = Thread(target=start_web_server, args=[])
+web_server_thread.setDaemon(True)
+web_server_thread.start()
+
+
 def play_cd(media_player, cad):
-    media_player.try_play_cd()  # try to play CD after running the program
+    media_player.try_play_cd()
     if media_player.is_running:
         if cad is not None:
             cad.init(media_player)
@@ -154,24 +170,10 @@ def play_cd(media_player, cad):
                 print(info.as_dict())
                 socket.emit('media_player_info', info.as_dict())
             sleep(0.2)
-        cad.destroy()
+        if cad is not None:
+            cad.destroy()
         socket.emit('media_player_info', media_player.get_current_info().as_dict())
 
-
-# Web server thread starting point
-def start_web_server():
-    """
-    Starts web server
-    :return: None
-    """
-    if __name__ == '__main__':
-        socket.run(app, config['WEB_IP'], port=config['WEB_PORT'])
-
-
-# Start web server thread
-web_server_thread = Thread(target=start_web_server, args=[])
-web_server_thread.setDaemon(True)
-web_server_thread.start()
 
 # Eject button
 if cad is not None:

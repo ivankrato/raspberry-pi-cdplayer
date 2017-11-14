@@ -65,10 +65,10 @@ export default class MediaPlayer extends Component {
                 </div>
                 <div className="row">
                     <input ref="libraryRespCheckbox" onChange={this.handleLibraryRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-library"/>
-                    <label htmlFor="resp-toggle-library"></label>
+                    <label htmlFor="resp-toggle-library" />
                     <Library socket={this.socket} className="col-50" onBlur={this.hideLibraryTrackList}/>
                     <input ref="trackListRespCheckbox" onChange={this.handleTrackListRespCheckboxChange} type="checkbox" className="resp-toggle" id="resp-toggle-track-list"/>
-                    <label htmlFor="resp-toggle-track-list"></label>
+                    <label htmlFor="resp-toggle-track-list" />
                     <TrackList socket={this.socket} className="col-50"/>
                 </div>
             </div>

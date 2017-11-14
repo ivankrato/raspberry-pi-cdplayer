@@ -8,6 +8,10 @@ import json
 
 
 class MediaPlayer:
+    """
+    Contains logic for controlling mpv and getting information about CD.
+    """
+
     class DiskType(Enum):
         AUDIO_CD = 'audio_cd'
         MP3_CD = 'mp3_cd'
@@ -17,13 +21,12 @@ class MediaPlayer:
         ARTISTS = 'artists'
         ALBUMS = 'albums'
 
-
     def __init__(self, config):
         self._config = config
         self.MPV_COMMAND = ["mpv", "--quiet", "--vo=null",
-                   "--no-audio-display",
-                   "--cache=1024", "--loop",
-                   "--input-ipc-server=" + self._config['MPV_SOCKET_PATH']]
+                            "--no-audio-display",
+                            "--cache=1024", "--loop",
+                            "--input-ipc-server=" + self._config['MPV_SOCKET_PATH']]
         self._cd = CD()
         self._mpv = None
         self._current_disk_type = None
@@ -81,9 +84,16 @@ class MediaPlayer:
             return None
 
     def try_play_cd(self):
+        """
+        Tries to play CD in CD drive, if there is any (or USB drive).
+        Sets the current media library branch type and index attribute and puts info into the info queue.
+        :return: None
+        """
         self._info_events = queue.Queue()
         if not self.is_running:
             cd_type = self._check_for_cd()
+            if cd_type is None:
+                return
             if cd_type == MediaPlayer.DiskType.AUDIO_CD:
                 # check for audio CD
                 print('playing audio CD')
@@ -95,8 +105,7 @@ class MediaPlayer:
                 print('playing MP3 CD')
                 self._mpv = subprocess.Popen(self.MPV_COMMAND + ['--volume=' + self._config['DEFAULT_VOLUME']] +
                                              list(map(lambda file: file.full_path,
-                                                      self._media_library.media_folders[0].media_files))
-                                             ,
+                                                      self._media_library.media_folders[0].media_files)),
                                              bufsize=1)
                 self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS, 0)
             info = self.get_current_info(True, False, True, True, True)
@@ -108,30 +117,28 @@ class MediaPlayer:
 
     def _check_for_cd(self):
         self._current_disk_type = None
-        if not self.is_running:
-            self._cd.load_cd_info()
-            df = []
-            if CD.is_cd_inserted():
-                numtracks = self._cd.numtracks
-                if numtracks > 1:
-                    # CD that isn't audio CD has 1 track
-                    self._current_disk_type = MediaPlayer.DiskType.AUDIO_CD
-                    self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
-                else:
-                    df = subprocess.getoutput('df | grep ' + self._config['CD_DEVICE']).split()
+        self._cd.load_cd_info()
+        df = []
+        if CD.is_cd_inserted():
+            if self._cd.numtracks > 1:
+                # CD that isn't audio CD has 1 track
+                self._current_disk_type = MediaPlayer.DiskType.AUDIO_CD
+                self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
             else:
-                df = subprocess.getoutput('df | grep ' + self._config['USB_DEVICE']).split()
-            if len(df) > 0:
-                mount_point = ' '.join(df[5:])
-                self._media_library = MediaLibrary()
-                self._media_library.init(mount_point)
-                if self._media_library.media_file_count > 0:
-                    self._current_disk_type = MediaPlayer.DiskType.MP3_CD
-                    self._current_track_list = list(map(
-                        lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
-                                                     media_info.title),
-                        self._media_library.media_folders[0].media_files))
-                    print(self._media_library.as_dict())
+                df = subprocess.getoutput('df | grep ' + self._config['CD_DEVICE']).split()
+        else:
+            df = subprocess.getoutput('df | grep ' + self._config['USB_DEVICE']).split()
+        if len(df) > 0:
+            mount_point = ' '.join(df[5:])
+            self._media_library = MediaLibrary()
+            self._media_library.init(mount_point)
+            if self._media_library.media_file_count > 0:
+                self._current_disk_type = MediaPlayer.DiskType.MP3_CD
+                self._current_track_list = list(map(
+                    lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
+                                                 media_info.title),
+                    self._media_library.media_folders[0].media_files))
+                print(self._media_library.as_dict())
         return self._current_disk_type
 
     def _run_command(self, *command):
@@ -139,7 +146,8 @@ class MediaPlayer:
             "command": command
         }
         command_json = json.dumps(command_dict) + '\n'
-        socat = subprocess.Popen(['socat', '-', self._config['MPV_SOCKET_PATH']], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        socat = subprocess.Popen(['socat', '-', self._config['MPV_SOCKET_PATH']], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
         socat_output = socat.communicate(command_json.encode('utf-8'))
         if socat_output[0] is not None and \
                         len(socat_output[0]) != 0 and \
@@ -325,6 +333,10 @@ class MediaPlayer:
 
 
 class CD:
+    """
+    Represents CD drive and disc inside.
+    """
+
     def __init__(self):
         self._numtracks = 0
         self._track_lengths = []

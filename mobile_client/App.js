@@ -109,7 +109,7 @@ class HomeScreen extends Component {
     }
 
     openMediaPlayer(index) {
-        ip = this.state.ipList[index];
+        let ip = this.state.ipList[index];
         const uri = 'http://' + ip.ip + ((ip.port !== '') ? (':' + ip.port) : '');
 
         function showError() {
@@ -119,7 +119,7 @@ class HomeScreen extends Component {
         const {navigate} = this.props.navigation;
         fetch(uri + '/getMediaPlayerInfo').then((response) => {
             if (response.ok) {
-                // save last index
+                // save last connection
                 try {
                     AsyncStorage.setItem('@IPList:lastIndex', index.toString());
                     this.setState({

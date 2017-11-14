@@ -206,6 +206,7 @@ body {
     .library,
     .track-list {
         overflow-y: auto;
+        min-height: 200px !important;
 
         .song,
         .track {

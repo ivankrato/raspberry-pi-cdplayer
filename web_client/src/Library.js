@@ -42,7 +42,7 @@ export default class Library extends Component {
             let height = window.innerHeight;
             for(let node of library.parentNode.childNodes) {
                 if(node === library) continue;
-                height -= node.offsetHeight ;
+                height -= node.offsetHeight;
             }
             library.style.height = height + 'px';
         }
