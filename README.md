@@ -14,12 +14,14 @@ Written in Python/React/React Native.
 
 ## Instalation
 
-1) Increase USB current limit (only if your CD/DVD drive is powered from USB)
+1) Download the newest release of raspberry-pi-cdplayer from [here](https://github.com/ivankrato/raspberry-pi-cdplayer/releases) or [build](#build) your own.
+
+2) Increase USB current limit (only if your CD/DVD drive is powered from USB)
 ```bash
 echo 'max_usb_current=1 >> '/boot/config.txt'
 ```
 
-2) Set your default sound card (skip if you don't use external sound card)
+3) Set your default sound card (skip if you don't use external sound card)
 
 Create file ~/.asoundrc with this content. The card number is 1 in case of external USB sound card
 ```
@@ -34,20 +36,18 @@ ctl.!default {
 }
 ```
 
-3) Set the volume of your sound card to 100%.
+4) Set the volume of your sound card to 100%.
 ```bash
 amixer -c <sound card number> set Speaker playback 100% unmute
 ```
 
-4) Install required packages
+5) Install required packages
 ```bash
 sudo apt install mpv eject cd-discid socat lirc
 sudo pip3 install mutagen flask flask-socketio pyudev
 ```
 
-5) Download the newest release of raspberry-pi-cdplayer or build your own.
-
-**You can skip next steps if you don't use PiFace CAD 2**
+**You can [skip](#configuration) next steps if you don't use PiFace CAD 2**
 
 6) Enable SPI interface in raspi-config (skip if you don't use PiFace CAD 2)
 
