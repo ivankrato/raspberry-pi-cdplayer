@@ -111,11 +111,20 @@ The program now autoplays any audio CD or CD/DVD/USB disk with MP3s on them. You
 
 ### Hardware buttons
 
-**TODO**
+![Hardware buttons](images/hw.jpg)
+
+1) Previous folder/artist/album
+2) Next folder/artist/album
+3) Volume down
+4) Volume up
+5) Eject disc/unmount usb drive and stop playback
+6) Next song in playlist
+7) Previous song in playlist
+8) Play/pause
 
 ### Web interface
 
-Just put http://ip:port/ to your browser. Default port is 51234. The insterface is fully reponsive, so it works on any mobile device.
+Just put your Raspberry Pi's http://ip:port/ to your browser. Default port is 51234. The insterface is fully reponsive, so it works on any mobile device.
 
 ![Web interface](images/web.png)
 
