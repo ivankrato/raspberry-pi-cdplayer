@@ -167,3 +167,7 @@ The application consists of 3 screens. List of your Raspberry Pi CD players, edi
 ## Build
 
 If you want to build the application on your own, just run build.bat (Windows) or build.sh (Bash) script. You will need to have *node.js* with *npm* installed.
+
+## Case
+
+If you need a case for Raspberry Pi 3 with PiFace CAD 2 and you have an access to 3D printer, there are .stl files in the [case_stl folder](case_stl/). 
