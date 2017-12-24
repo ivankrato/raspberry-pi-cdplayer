@@ -2,6 +2,7 @@
 
 Raspberry Pi CD/MP3 player usable with PiFace CAD 2 and with web/mobile interface. It autoplays audio and MP3 CDs and MP3s from USB disks and is controllable from web interface, Android app or PiFace CAD 2 module (including IR remote controll).
 Written in Python/React/React Native.
+Made as a bachelor's thesis at University of South Bohemia.
 
 ## Requirements
 
@@ -170,4 +171,4 @@ If you want to build the application on your own, just run build.bat (Windows) o
 
 ## Case
 
-If you need a case for Raspberry Pi 3 with PiFace CAD 2 and you have an access to 3D printer, there are .stl files in the [case_stl folder](case_stl/). 
+If you need a case for Raspberry Pi 3 with PiFace CAD 2 and you have an access to 3D printer, there are .stl files in the [case_stl folder](case_stl/). Thanks to [my thesis supervisor](https://github.com/jipech) for creating them.
