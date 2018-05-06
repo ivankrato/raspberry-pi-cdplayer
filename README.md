@@ -1,8 +1,13 @@
 # raspberry-pi-cdplayer
 
-Raspberry Pi CD/MP3 player usable with PiFace CAD 2 and with web/mobile interface. It autoplays audio and MP3 CDs and MP3s from USB disks and is controllable from web interface, Android app or PiFace CAD 2 module (including IR remote controll).
+Raspberry Pi CD/MP3 player usable with PiFace CAD 2 and with web/mobile interface. It autoplays audio and MP3 CDs and
+MP3s from USB disks and is controllable from web interface, Android app or PiFace CAD 2 module (including IR
+remote control).
+
 Written in Python/React/React Native.
-Made as a bachelor's thesis at University of South Bohemia.
+
+Originally written by Ivan Trams Kratochvíl (https://github.com/ivankrato)
+Modified by Joe Hartley (https://github.com/joehartley3) to use the MusicBrainz database for CD track lists
 
 ## Requirements
 
@@ -13,16 +18,14 @@ Made as a bachelor's thesis at University of South Bohemia.
 * At least 2 A power supply (only if your CD/DVD drive is powered from USB)
 * Raspbian Stretch (tested)
 
-## Instalation
+## Installation
 
-1) Download the newest release of raspberry-pi-cdplayer from [here](https://github.com/ivankrato/raspberry-pi-cdplayer/releases) or [build](#build) your own.
-
-2) Increase USB current limit (only if your CD/DVD drive is powered from USB)
+1) Increase USB current limit (only if your CD/DVD drive is powered from USB)
 ```bash
 echo 'max_usb_current=1 >> '/boot/config.txt'
 ```
 
-3) Set your default sound card (skip if you don't use external sound card)
+2) Set your default sound card (skip if you don't use external sound card)
 
 Create file ~/.asoundrc with this content. The card number is 1 in case of external USB sound card
 ```
@@ -37,18 +40,25 @@ ctl.!default {
 }
 ```
 
-4) Set the volume of your sound card to 100%.
+3) Set the volume of your sound card to 100%.
 ```bash
 amixer -c <sound card number> set Speaker playback 100% unmute
 ```
 
-5) Install required packages
+4) Install required packages
 ```bash
-sudo apt install mpv eject cd-discid socat lirc
+sudo apt install mpv eject cd-discid socat
 sudo pip3 install mutagen flask flask-socketio pyudev
 ```
 
-**You can [skip](#configuration) next steps if you don't use PiFace CAD 2**
+If you have an Infrared remote control unit (like the PiFace CAD hat), install LIRC:
+```
+sudo apt install lirc
+```
+
+5) Download the newest release of raspberry-pi-cdplayer or build your own.
+
+**You can skip next steps if you don't use PiFace CAD 2**
 
 6) Enable SPI interface in raspi-config (skip if you don't use PiFace CAD 2)
 
@@ -112,20 +122,11 @@ The program now autoplays any audio CD or CD/DVD/USB disk with MP3s on them. You
 
 ### Hardware buttons
 
-![Hardware buttons](images/hw.jpg)
-
-1) Previous folder/artist/album
-2) Next folder/artist/album
-3) Volume down
-4) Volume up
-5) Eject disc/unmount usb drive and stop playback
-6) Next song in playlist
-7) Previous song in playlist
-8) Play/pause
+**TODO**
 
 ### Web interface
 
-Just put your Raspberry Pi's http://ip:port/ to your browser. Default port is 51234. The insterface is fully reponsive, so it works on any mobile device.
+Just put http://ip:port/ to your browser. Default port is 51234. The insterface is fully reponsive, so it works on any mobile device.
 
 ![Web interface](images/web.png)
 
@@ -168,7 +169,3 @@ The application consists of 3 screens. List of your Raspberry Pi CD players, edi
 ## Build
 
 If you want to build the application on your own, just run build.bat (Windows) or build.sh (Bash) script. You will need to have *node.js* with *npm* installed.
-
-## Case
-
-If you need a case for Raspberry Pi 3 with PiFace CAD 2 and you have an access to 3D printer, there are .stl files in the [case_stl folder](case_stl/). Thanks to [my thesis supervisor](https://github.com/jipech) for creating them.
