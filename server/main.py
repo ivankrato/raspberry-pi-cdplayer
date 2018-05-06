@@ -134,7 +134,8 @@ def ws_pause():
 
 @socket.on('eject')
 def ws_eject():
-    cad.destroy()
+    if cad is not None:
+        cad.destroy()
     media_player.stop()
 
 
