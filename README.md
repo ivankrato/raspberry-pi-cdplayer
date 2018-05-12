@@ -13,8 +13,8 @@ Modified by Joe Hartley (https://github.com/joehartley3) to use the MusicBrainz 
 
 * Raspberry Pi 3 (tested)
 * USB CD/DVD drive
-* PiFace CAD 2 (optional)
-* external sound card (optional)
+* A DAC (digital-to-analog) hat like the JustBoom DAC (optional)
+* A control and display hat like the PiFace CAD 2 (optional)
 * At least 2 A power supply (only if your CD/DVD drive is powered from USB)
 * Raspbian Stretch (tested)
 
@@ -25,7 +25,7 @@ Modified by Joe Hartley (https://github.com/joehartley3) to use the MusicBrainz 
 echo 'max_usb_current=1 >> '/boot/config.txt'
 ```
 
-2) Set your default sound card (skip if you don't use external sound card)
+2) If needed, set your default sound card.  This step was not necessarry with the JustBoom DAC hat, but may be needed with others.
 
 Create file ~/.asoundrc with this content. The card number is 1 in case of external USB sound card
 ```
