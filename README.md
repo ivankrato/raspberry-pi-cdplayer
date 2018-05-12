@@ -25,7 +25,7 @@ Modified by Joe Hartley (https://github.com/joehartley3) to use the MusicBrainz 
 echo 'max_usb_current=1 >> '/boot/config.txt'
 ```
 
-2) If needed, set your default sound card.  This step was not necessarry with the JustBoom DAC hat, but may be needed with others.
+2) If needed, set your default sound card.  This step was not necessary with the JustBoom DAC hat, but may be needed with others.
 
 Create file ~/.asoundrc with this content. The card number is 1 in case of external USB sound card
 ```
