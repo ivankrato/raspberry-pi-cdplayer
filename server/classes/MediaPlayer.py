@@ -8,6 +8,7 @@ import json
 import musicbrainzngs as m
 import libdiscid
 
+
 class MediaPlayer:
     """
     Contains logic for controlling mpv and getting information about CD.
@@ -357,6 +358,7 @@ class CD:
         # JH - added code to query musicbrainz for disk info, build track list and times from that info
         # instead of the cd-discid output, if available.
         track_offsets = []
+        m.set_useragent('raspberry-pi-cdplayer', '0.2', 'https://github.com/JoeHartley3/raspberry-pi-cdplayer')
         try:
             this_disc = libdiscid.read('/dev/cdrom')
         except:
@@ -366,13 +368,11 @@ class CD:
             self._cd_info = None
             return
         try:
-            m.set_useragent('raspberry-pi-cdplayer', '0.2', 'https://github.com/JoeHartley3/raspberry-pi-cdplayer')
-            self._cd_info = m.get_releases_by_discid(this_disc.id, includes=["recordings", "artists"])
-            self._numtracks = self._cd_info['disc']['offset-count']
-            print(self._numtracks)
-            track_offsets = self._cd_info['disc']['offset-list']
-            # Append the total time to the track_offsets
-            track_offsets.append(int(self._cd_info['disc']['sectors']))
+            # A CD stub is an anonymously submitted track list that contains a disc ID, barcode, comment field, and
+            # basic metadata like a release title and track names.   ( https://wiki.musicbrainz.org/CD_Stub )
+            # By using cdstubs=False here, we force a ResponseError rather than try and parse the stub.  Remove the
+            # argument to enable cdstubs.
+            self._cd_info = m.get_releases_by_discid(this_disc.id, includes=["recordings", "artists"], cdstubs=False)
         except m.ResponseError:
             print("Disk not found or database unavailable")
             discid = subprocess.getstatusoutput('cd-discid --musicbrainz')
@@ -380,6 +380,23 @@ class CD:
                 output_split = discid[1].split()
                 self._numtracks = int(output_split[0])
                 track_offsets = list(map(lambda i: int(i), output_split[1:]))
+        if self._cd_info is not None:
+            if self._cd_info.get("disc"):
+                self._numtracks = self._cd_info['disc']['offset-count']
+                track_offsets = self._cd_info['disc']['offset-list']
+                # Append the total time to the track_offsets
+                track_offsets.append(int(self._cd_info['disc']['sectors']))
+            elif self._cd_info.get("cdstub"):
+                pass
+            else:
+                # We should never actually get to this point with or without cdstubs, but let's make sure.
+                # This is the same code as for a ResponseError above.
+                print("Unknown disk type from MB - use track numbers")
+                discid = subprocess.getstatusoutput('cd-discid --musicbrainz')
+                if discid[0] == 0:
+                    output_split = discid[1].split()
+                    self._numtracks = int(output_split[0])
+                    track_offsets = list(map(lambda i: int(i), output_split[1:]))
         try:
             self._track_lengths = list(
                 map(lambda i, offsets=track_offsets: int((offsets[i + 1] - offsets[i]) * 1000 / 75),
