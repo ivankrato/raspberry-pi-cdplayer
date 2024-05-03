@@ -1,3 +1,7 @@
+# This project is discontinued
+
+I'm really happy that some people actually used this, but I have no plans on updating this project, sorry. Checkout [this fork](https://github.com/JoeHartley3/raspberry-pi-cdplayer), there are some more added features.
+
 # raspberry-pi-cdplayer
 
 Raspberry Pi CD/MP3 player usable with PiFace CAD 2 and with web/mobile interface. It autoplays audio and MP3 CDs and MP3s from USB disks and is controllable from web interface, Android app or PiFace CAD 2 module (including IR remote controll).
