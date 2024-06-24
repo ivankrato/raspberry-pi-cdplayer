@@ -5,6 +5,8 @@ from enum import Enum
 from classes.MediaLibrary import MediaLibrary
 from classes.MediaPlayerInfo import MediaPlayerInfo, CurrentTrackInfo, TrackInfo
 import json
+import musicbrainzngs as m
+import libdiscid
 
 
 class MediaPlayer:
@@ -35,7 +37,7 @@ class MediaPlayer:
         self._current_media_library_branch_type_index = None
         self._info_events = None
         self._current_track = 0
-        self._volume = 20
+        self._volume = 95
 
     def get_current_info(self, status=True, cur_track_info=True, volume=True, track_list=False, library=False):
         info = MediaPlayerInfo()
@@ -108,7 +110,8 @@ class MediaPlayer:
                                                       self._media_library.media_folders[0].media_files)),
                                              bufsize=1)
                 self._current_media_library_branch_type_index = (MediaPlayer.BranchType.FOLDERS, 0)
-            info = self.get_current_info(True, False, True, True, True)
+            info = self.get_current_info(True, True, True, True, True)
+            # info = self.get_current_info(True, False, True, True, True)
             # fill cur_track_info with zeros, because it may not be initialized yet (mpv loading)
             info.cur_track_info = CurrentTrackInfo()
             info.cur_track_info.cur_time = 0
@@ -117,13 +120,22 @@ class MediaPlayer:
 
     def _check_for_cd(self):
         self._current_disk_type = None
+        self._current_track_list = []
         self._cd.load_cd_info()
         df = []
         if CD.is_cd_inserted():
             if self._cd.numtracks > 1:
                 # CD that isn't audio CD has 1 track
                 self._current_disk_type = MediaPlayer.DiskType.AUDIO_CD
-                self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
+                try:
+                    artist = self._cd._cd_info['disc']['release-list'][0]['artist-credit-phrase']
+                    album = self._cd._cd_info['disc']['release-list'][0]['title']
+                    self._current_track_list = list(map(
+                        lambda x, y: TrackInfo(y, artist, album, x['recording']['title']),
+                        self._cd._cd_info['disc']['release-list'][0]['medium-list'][0]['track-list'],
+                        self._cd.track_lengths))
+                except:
+                    self._current_track_list = list(map(lambda x: TrackInfo(x), self._cd.track_lengths))
             else:
                 df = subprocess.getoutput('df | grep ' + self._config['CD_DEVICE']).split()
         else:
@@ -138,7 +150,7 @@ class MediaPlayer:
                     lambda media_info: TrackInfo(media_info.total_time, media_info.artist, media_info.album,
                                                  media_info.title),
                     self._media_library.media_folders[0].media_files))
-                print(self._media_library.as_dict())
+                # print(self._media_library.as_dict())
         return self._current_disk_type
 
     def _run_command(self, *command):
@@ -303,13 +315,13 @@ class MediaPlayer:
             self._mpv.kill()
         except:
             print("Nothing is playing.")
-        self.eject()
         subprocess.call(['umount', '/dev/' + self._config['USB_DEVICE']])
         self._current_disk_type = None
         self._current_track = 0
         self._current_track_list = None
         self._current_media_library_branch_type_index = None
         self._media_library = None
+        self.eject()
 
     def eject(self):
         subprocess.Popen(['eject', self._config['CD_DEVICE']])
@@ -340,17 +352,56 @@ class CD:
     def __init__(self):
         self._numtracks = 0
         self._track_lengths = []
+        self._cd_info = None
 
     def load_cd_info(self):
-        discid = subprocess.getstatusoutput('cd-discid --musicbrainz')
-        if discid[0] == 0:
-            output_split = discid[1].split()
-            self._numtracks = int(output_split[0])
-            track_offsets = list(map(lambda i: int(i), output_split[1:]))
+        # JH - added code to query musicbrainz for disk info, build track list and times from that info
+        # instead of the cd-discid output, if available.
+        track_offsets = []
+        m.set_useragent('raspberry-pi-cdplayer', '0.2', 'https://github.com/JoeHartley3/raspberry-pi-cdplayer')
+        try:
+            this_disc = libdiscid.read('/dev/cdrom')
+        except:
+            print('DiskID could not read /dev/cdrom')
+            self._numtracks = 0
+            self._track_lengths = []
+            self._cd_info = None
+            return
+        try:
+            # A CD stub is an anonymously submitted track list that contains a disc ID, barcode, comment field, and
+            # basic metadata like a release title and track names.   ( https://wiki.musicbrainz.org/CD_Stub )
+            # By using cdstubs=False here, we force a ResponseError rather than try and parse the stub.  Remove the
+            # argument to enable cdstubs.
+            self._cd_info = m.get_releases_by_discid(this_disc.id, includes=["recordings", "artists"], cdstubs=False)
+        except m.ResponseError:
+            print("Disk not found or database unavailable")
+            discid = subprocess.getstatusoutput('cd-discid --musicbrainz')
+            if discid[0] == 0:
+                output_split = discid[1].split()
+                self._numtracks = int(output_split[0])
+                track_offsets = list(map(lambda i: int(i), output_split[1:]))
+        if self._cd_info is not None:
+            if self._cd_info.get("disc"):
+                self._numtracks = self._cd_info['disc']['offset-count']
+                track_offsets = self._cd_info['disc']['offset-list']
+                # Append the total time to the track_offsets
+                track_offsets.append(int(self._cd_info['disc']['sectors']))
+            elif self._cd_info.get("cdstub"):
+                pass
+            else:
+                # We should never actually get to this point with or without cdstubs, but let's make sure.
+                # This is the same code as for a ResponseError above.
+                print("Unknown disk type from MB - use track numbers")
+                discid = subprocess.getstatusoutput('cd-discid --musicbrainz')
+                if discid[0] == 0:
+                    output_split = discid[1].split()
+                    self._numtracks = int(output_split[0])
+                    track_offsets = list(map(lambda i: int(i), output_split[1:]))
+        try:
             self._track_lengths = list(
                 map(lambda i, offsets=track_offsets: int((offsets[i + 1] - offsets[i]) * 1000 / 75),
                     range(0, self._numtracks)))
-        else:
+        except:
             self._numtracks = 0
             self._track_lengths = []
 
